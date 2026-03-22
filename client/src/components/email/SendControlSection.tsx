@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Send, Clock, AlertCircle, CheckCircle2, Loader2, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
-import EmailPreviewDialog from './EmailPreviewDialog';
+import ResizableEmailPreviewDialog from './ResizableEmailPreviewDialog';
 
 interface SendControlSectionProps {
   uploadedFile: any;
@@ -440,7 +440,7 @@ export default function SendControlSection({
       </Card>
 
       {/* Email Preview Dialog */}
-      <EmailPreviewDialog
+      <ResizableEmailPreviewDialog
         open={showPreviewDialog}
         onOpenChange={setShowPreviewDialog}
         emails={previewEmails}
