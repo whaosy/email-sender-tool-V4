@@ -82,9 +82,18 @@ export async function generateEmailPreviews(
 
     // Add email for each recipient
     for (const email of emails) {
+      // Replace all placeholders in subject
+      let replacedSubject = templateSubject
+        .replace(/{merchantName}/g, sheetName)
+        .replace(/{{merchantName}}/g, sheetName)
+        .replace(/{settlementAmount}/g, settlementAmount.toString())
+        .replace(/{{settlementAmount}}/g, settlementAmount.toString())
+        .replace(/{currentDate}/g, new Date().toLocaleDateString('zh-CN'))
+        .replace(/{{currentDate}}/g, new Date().toLocaleDateString('zh-CN'));
+      
       previews.push({
         to: email,
-        subject: templateSubject.replace(/{merchantName}/g, sheetName).replace(/{{merchantName}}/g, sheetName),
+        subject: replacedSubject,
         html: emailContent,
         merchantName: sheetName,
       });
@@ -130,9 +139,18 @@ export async function generateSingleEmailPreview(
     merchantName
   );
 
+  // Replace all placeholders in subject
+  let replacedSubject = templateSubject
+    .replace(/{merchantName}/g, merchantName)
+    .replace(/{{merchantName}}/g, merchantName)
+    .replace(/{settlementAmount}/g, settlementAmount.toString())
+    .replace(/{{settlementAmount}}/g, settlementAmount.toString())
+    .replace(/{currentDate}/g, new Date().toLocaleDateString('zh-CN'))
+    .replace(/{{currentDate}}/g, new Date().toLocaleDateString('zh-CN'));
+
   return {
     to: recipientEmail,
-    subject: templateSubject.replace(/{merchantName}/g, merchantName).replace(/{{merchantName}}/g, merchantName),
+    subject: replacedSubject,
     html: emailContent,
     merchantName,
   };
