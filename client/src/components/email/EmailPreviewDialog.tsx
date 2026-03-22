@@ -120,7 +120,7 @@ export default function EmailPreviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-6xl max-h-[95vh] w-[90vw] flex flex-col resize">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
@@ -195,14 +195,15 @@ export default function EmailPreviewDialog({
               <p className="text-xs font-medium text-slate-600 px-4 py-2 border-b border-slate-200">
                 邮件内容预览
               </p>
-              <ScrollArea className="flex-1">
-                <div className="p-4 min-h-full">
+              <ScrollArea className="flex-1 w-full">
+                <div className="p-4 min-w-max">
                   {/* Render HTML content safely */}
                   <div
-                    className="prose prose-sm max-w-none text-slate-900 break-words"
+                    className="prose prose-sm prose-table max-w-none text-slate-900"
                     style={{
                       wordBreak: 'break-word',
                       overflowWrap: 'break-word',
+                      minWidth: '100%',
                     }}
                   >
                     {sanitizedHtml ? (

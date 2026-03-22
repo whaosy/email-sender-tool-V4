@@ -40,3 +40,9 @@
 - [x] Bug #1: 点击“生成邮件预览”报 React error #310 - 已修复（移除 early return，优化 useEffect）
 - [x] Bug #2: 模板中的列表格式在预览中不昺示 - 已修复（使用 dangerouslySetInnerHTML）
 - [x] Bug #3: 邮件发送成功但历史记录昺示 0成功/0失败 - 已修复（修复 insertId 取值、taskId 类型转换）
+
+
+## 第二轮 Bug 修复（用户反馈）
+- [x] Bug #4: 模板配置时列表/有序列表在预览中不昺示样式 - 已修复
+- [x] Bug #5: 生成邮件预览弹窗太小 - 已修复（放大为 max-w-6xl，支持滑动）
+- [x] Bug #6: 历史记录详情弹窗太小 - 已修复（放大为 max-w-7xl，支持滑动）

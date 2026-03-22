@@ -96,7 +96,7 @@ export default function EmailDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[95vh] w-[95vw] flex flex-col">
+      <DialogContent className="max-w-7xl max-h-[95vh] w-[92vw] flex flex-col resize">
         <DialogHeader>
           <DialogTitle>邮件详情</DialogTitle>
           <DialogDescription>查看完整的邮件内容和发送状态</DialogDescription>
@@ -210,13 +210,14 @@ export default function EmailDetailDialog({
                 下载
               </Button>
             </div>
-            <ScrollArea className="flex-1">
-              <div className="p-4">
+            <ScrollArea className="flex-1 w-full">
+              <div className="p-4 min-w-max">
                 <div
-                  className="prose prose-sm max-w-none text-slate-900 break-words"
+                  className="prose prose-sm prose-table max-w-none text-slate-900"
                   style={{
                     wordBreak: 'break-word',
                     overflowWrap: 'break-word',
+                    minWidth: '100%',
                   }}
                 >
                   <div dangerouslySetInnerHTML={{ __html: email.html }} />
