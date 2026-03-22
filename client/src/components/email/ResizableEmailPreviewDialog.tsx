@@ -43,8 +43,9 @@ export default function ResizableEmailPreviewDialog({
         x: window.innerWidth / 2 - 600,
         y: window.innerHeight / 2 - 300,
       });
+      console.log('Preview dialog opened with emails:', emails);
     }
-  }, [open]);
+  }, [open, emails]);
 
   // Sanitize HTML when email changes
   useEffect(() => {
@@ -54,6 +55,7 @@ export default function ResizableEmailPreviewDialog({
     }
 
     const currentEmail = emails[currentIndex];
+    console.log('Current email:', currentEmail);
     if (!currentEmail?.html) {
       setSanitizedHtml('');
       return;

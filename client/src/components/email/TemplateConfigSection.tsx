@@ -116,7 +116,7 @@ export default function TemplateConfigSection({ onTemplateSelect }: TemplateConf
             </p>
             <div className="text-sm text-green-800 space-y-2">
               <span className="font-medium block">预览：</span>
-              <div className="prose prose-sm prose-ul prose-ol prose-li max-w-none bg-white p-3 rounded border border-green-200 max-h-48 overflow-y-auto">
+              <div className="prose prose-sm prose-ul prose-ol prose-li prose-a prose-code prose-pre prose-h1 prose-h2 prose-h3 prose-h4 prose-h5 prose-h6 prose-table max-w-none bg-white p-3 rounded border border-green-200 max-h-48 overflow-y-auto rich-text-editor-content">
                 <div dangerouslySetInnerHTML={{ __html: selectedTemplate.body }} />
               </div>
             </div>
