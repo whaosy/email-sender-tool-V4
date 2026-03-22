@@ -1,13 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ChevronRight, Mail, Copy, Maximize2, Minimize2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -41,7 +33,6 @@ export default function ResizableEmailPreviewDialog({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [isResizing, setIsResizing] = useState(false);
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
-  const contentRef = useRef<HTMLDivElement>(null);
 
   // Reset index when dialog opens
   useEffect(() => {
@@ -132,31 +123,32 @@ export default function ResizableEmailPreviewDialog({
   const hasNext = currentIndex < emails.length - 1;
   const hasPrev = currentIndex > 0;
 
+  // Maximized mode - full width, fixed height
   if (isMaximized) {
     return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-full max-h-full w-screen h-screen flex flex-col p-0 rounded-none">
-          <DialogHeader className="px-6 py-4 border-b" data-draggable-handle>
-            <div className="flex items-center justify-between">
-              <div>
-                <DialogTitle className="flex items-center gap-2">
-                  <Mail className="h-5 w-5" />
-                  邮件预览（最大化）
-                </DialogTitle>
-                <DialogDescription>
-                  共 {emails.length} 封邮件，当前预览第 {currentIndex + 1} 封
-                </DialogDescription>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsMaximized(false)}
-              >
-                <Minimize2 className="h-4 w-4" />
-              </Button>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="bg-white rounded-lg shadow-2xl border border-slate-200 flex flex-col" style={{ width: '100vw', height: '800px', maxHeight: '90vh' }}>
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100 rounded-t-lg flex items-center justify-between">
+            <div>
+              <h2 className="font-semibold text-slate-900 flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                邮件预览（全屏）
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">
+                共 {emails.length} 封邮件，当前预览第 {currentIndex + 1} 封
+              </p>
             </div>
-          </DialogHeader>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsMaximized(false)}
+            >
+              <Minimize2 className="h-4 w-4" />
+            </Button>
+          </div>
 
+          {/* Content */}
           <div className="flex-1 overflow-hidden flex flex-col gap-4 p-4">
             {/* Email Navigation */}
             <div className="flex items-center justify-between gap-2 px-4 py-2 bg-slate-50 rounded-lg">
@@ -172,9 +164,6 @@ export default function ResizableEmailPreviewDialog({
               <div className="flex-1 text-center">
                 <p className="text-sm font-medium text-slate-700">
                   {currentEmail.merchantName || '商户'} - {currentEmail.to}
-                </p>
-                <p className="text-xs text-slate-500 mt-1">
-                  {currentIndex + 1} / {emails.length}
                 </p>
               </div>
 
@@ -221,14 +210,13 @@ export default function ResizableEmailPreviewDialog({
                 <p className="text-xs font-medium text-slate-600 px-4 py-2 border-b border-slate-200">
                   邮件内容预览
                 </p>
-                <ScrollArea className="flex-1 w-full">
-                  <div className="p-4 min-w-max">
+                <div className="flex-1 overflow-auto">
+                  <div className="p-4">
                     <div
                       className="prose prose-sm prose-table max-w-none text-slate-900"
                       style={{
                         wordBreak: 'break-word',
                         overflowWrap: 'break-word',
-                        minWidth: '100%',
                       }}
                     >
                       {sanitizedHtml ? (
@@ -238,12 +226,13 @@ export default function ResizableEmailPreviewDialog({
                       )}
                     </div>
                   </div>
-                </ScrollArea>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 px-6 py-4 border-t">
+          {/* Footer */}
+          <div className="flex justify-end gap-2 px-6 py-4 border-t bg-slate-50">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
@@ -255,11 +244,12 @@ export default function ResizableEmailPreviewDialog({
               {isLoading ? '发送中...' : '确认发送'}
             </Button>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </div>
     );
   }
 
+  // Normal mode - draggable and resizable window
   return (
     <div
       className="fixed z-50 bg-white rounded-lg shadow-2xl border border-slate-200 flex flex-col"
@@ -369,14 +359,13 @@ export default function ResizableEmailPreviewDialog({
             <p className="text-xs font-medium text-slate-600 px-4 py-2 border-b border-slate-200">
               邮件内容预览
             </p>
-            <ScrollArea className="flex-1 w-full">
-              <div className="p-4 min-w-max">
+            <div className="flex-1 overflow-auto">
+              <div className="p-4">
                 <div
                   className="prose prose-sm prose-table max-w-none text-slate-900"
                   style={{
                     wordBreak: 'break-word',
                     overflowWrap: 'break-word',
-                    minWidth: '100%',
                   }}
                 >
                   {sanitizedHtml ? (
@@ -386,7 +375,7 @@ export default function ResizableEmailPreviewDialog({
                   )}
                 </div>
               </div>
-            </ScrollArea>
+            </div>
           </div>
         </div>
       </div>

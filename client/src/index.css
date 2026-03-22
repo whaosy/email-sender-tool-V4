@@ -208,3 +208,41 @@
     list-style-type: square;
     margin-left: 2rem;
   }
+
+
+  /* Link Styles */
+  .rich-text-editor-content a {
+    color: #0066cc;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .rich-text-editor-content a:hover {
+    color: #0052a3;
+  }
+
+  /* Code Block Styles */
+  .rich-text-editor-content pre {
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 12px;
+    margin: 8px 0;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .rich-text-editor-content code {
+    background-color: #f5f5f5;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+  }
+
+  .rich-text-editor-content pre code {
+    background-color: transparent;
+    padding: 0;
+  }
