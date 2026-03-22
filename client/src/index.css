@@ -246,3 +246,54 @@
     background-color: transparent;
     padding: 0;
   }
+
+  /* Heading Styles */
+  .rich-text-editor-content h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.2;
+  }
+
+  .rich-text-editor-content h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.2;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 0.5rem;
+  }
+
+  .rich-text-editor-content h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-top: 0.8rem;
+    margin-bottom: 0.4rem;
+    line-height: 1.2;
+  }
+
+  .rich-text-editor-content h4 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-top: 0.8rem;
+    margin-bottom: 0.4rem;
+    line-height: 1.2;
+  }
+
+  .rich-text-editor-content h5 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-top: 0.8rem;
+    margin-bottom: 0.4rem;
+    line-height: 1.2;
+  }
+
+  .rich-text-editor-content h6 {
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-top: 0.8rem;
+    margin-bottom: 0.4rem;
+    line-height: 1.2;
+  }

@@ -27,17 +27,22 @@ export default function ResizableEmailPreviewDialog({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [sanitizedHtml, setSanitizedHtml] = useState('');
   const [isMaximized, setIsMaximized] = useState(false);
-  const [dimensions, setDimensions] = useState({ width: 1200, height: 800 });
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [dimensions, setDimensions] = useState({ width: 1200, height: 600 });
+  const [position, setPosition] = useState({ x: typeof window !== 'undefined' ? window.innerWidth / 2 - 600 : 0, y: typeof window !== 'undefined' ? window.innerHeight / 2 - 300 : 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [isResizing, setIsResizing] = useState(false);
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
 
-  // Reset index when dialog opens
+  // Reset index when dialog opens and center position
   useEffect(() => {
     if (open) {
       setCurrentIndex(0);
+      // Center the dialog on screen
+      setPosition({
+        x: window.innerWidth / 2 - 600,
+        y: window.innerHeight / 2 - 300,
+      });
     }
   }, [open]);
 
@@ -162,9 +167,9 @@ export default function ResizableEmailPreviewDialog({
               </Button>
 
               <div className="flex-1 text-center">
-                <p className="text-sm font-medium text-slate-700">
-                  {currentEmail.merchantName || '商户'} - {currentEmail.to}
-                </p>
+              <p className="text-sm font-medium text-slate-700">
+                {currentEmail.subject || '邮件主题'}
+              </p>
               </div>
 
               <Button
@@ -312,7 +317,7 @@ export default function ResizableEmailPreviewDialog({
 
           <div className="flex-1 text-center">
             <p className="text-sm font-medium text-slate-700">
-              {currentEmail.merchantName || '商户'} - {currentEmail.to}
+              {currentEmail.subject || '邮件主题'}
             </p>
           </div>
 

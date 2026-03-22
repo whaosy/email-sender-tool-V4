@@ -1,17 +1,7 @@
-'use client';
-
-import { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Copy, Download, X } from 'lucide-react';
+import { Copy, Download, Mail, Maximize2, Minimize2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface EmailDetailDialogProps {
@@ -38,6 +28,40 @@ export default function EmailDetailDialog({
   onOpenChange,
   email,
 }: EmailDetailDialogProps) {
+  const [isMaximized, setIsMaximized] = useState(false);
+  const [dimensions, setDimensions] = useState({ width: 1200, height: 600 });
+  const [position, setPosition] = useState({ x: typeof window !== 'undefined' ? window.innerWidth / 2 - 600 : 0, y: typeof window !== 'undefined' ? window.innerHeight / 2 - 300 : 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const [sanitizedHtml, setSanitizedHtml] = useState('');
+
+  // Center position when dialog opens
+  useEffect(() => {
+    if (open) {
+      setPosition({
+        x: window.innerWidth / 2 - 600,
+        y: window.innerHeight / 2 - 300,
+      });
+      setIsMaximized(false);
+    }
+  }, [open]);
+
+  // Sanitize HTML
+  useEffect(() => {
+    if (!open || !email?.html) {
+      setSanitizedHtml('');
+      return;
+    }
+
+    const temp = document.createElement('div');
+    temp.innerHTML = email.html;
+    const scripts = temp.querySelectorAll('script, style, iframe');
+    scripts.forEach(el => el.remove());
+    setSanitizedHtml(temp.innerHTML);
+  }, [open, email?.html]);
+
   if (!email) {
     return null;
   }
@@ -94,147 +118,350 @@ export default function EmailDetailDialog({
     }
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl max-h-[95vh] w-[92vw] flex flex-col resize">
-        <DialogHeader>
-          <DialogTitle>邮件详情</DialogTitle>
-          <DialogDescription>查看完整的邮件内容和发送状态</DialogDescription>
-        </DialogHeader>
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('[data-draggable-handle]')) {
+      setIsDragging(true);
+      setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+    }
+  };
 
-        <div className="flex-1 overflow-hidden flex flex-col gap-4">
-          {/* Email Metadata */}
-          <div className="grid grid-cols-2 gap-4 px-4 py-2 bg-slate-50 rounded-lg border border-slate-200">
-            {/* Status */}
-            {email.status && (
-              <div>
-                <p className="text-xs font-medium text-slate-600 mb-1">发送状态</p>
-                <Badge className={getStatusColor(email.status)}>
-                  {getStatusLabel(email.status)}
-                </Badge>
-              </div>
-            )}
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging) {
+      setPosition({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y,
+      });
+    }
+    if (isResizing) {
+      const newWidth = Math.max(600, resizeStart.width + (e.clientX - resizeStart.x));
+      const newHeight = Math.max(400, resizeStart.height + (e.clientY - resizeStart.y));
+      setDimensions({ width: newWidth, height: newHeight });
+    }
+  };
 
-            {/* Sent Time */}
-            {email.sentTime && (
-              <div>
-                <p className="text-xs font-medium text-slate-600 mb-1">发送时间</p>
-                <p className="text-sm text-slate-900">
-                  {new Date(email.sentTime).toLocaleString()}
-                </p>
-              </div>
-            )}
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    setIsResizing(false);
+  };
 
-            {/* From */}
-            {(email.from || email.senderEmail) && (
-              <div>
-                <p className="text-xs font-medium text-slate-600 mb-1">发件人</p>
-                <p className="text-sm text-slate-900 break-all">{email.from || email.senderEmail}</p>
-              </div>
-            )}
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    setResizeStart({
+      x: e.clientX,
+      y: e.clientY,
+      width: dimensions.width,
+      height: dimensions.height,
+    });
+  };
 
-            {/* Merchant Name */}
-            {email.merchantName && (
-              <div>
-                <p className="text-xs font-medium text-slate-600 mb-1">商户名称</p>
-                <p className="text-sm text-slate-900">{email.merchantName}</p>
-              </div>
-            )}
+  if (!open) {
+    return null;
+  }
 
-            {/* Retry Count */}
-            {email.retryCount !== undefined && email.retryCount !== null && (
-              <div>
-                <p className="text-xs font-medium text-slate-600 mb-1">重试次数</p>
-                <p className="text-sm text-slate-900">{email.retryCount}</p>
-              </div>
-            )}
-
-            {/* Error Message */}
-            {email.errorMessage && (
-              <div className="col-span-2">
-                <p className="text-xs font-medium text-red-600 mb-1">错误信息</p>
-                <p className="text-sm text-red-700 bg-red-50 p-2 rounded break-all">
-                  {email.errorMessage}
-                </p>
-              </div>
-            )}
+  // Maximized mode
+  if (isMaximized) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="bg-white rounded-lg shadow-2xl border border-slate-200 flex flex-col" style={{ width: '100vw', height: '800px', maxHeight: '90vh' }}>
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100 rounded-t-lg flex items-center justify-between">
+            <div>
+              <h2 className="font-semibold text-slate-900 flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                邮件详情（全屏）
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">查看完整的邮件内容和发送状态</p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsMaximized(false)}
+            >
+              <Minimize2 className="h-4 w-4" />
+            </Button>
           </div>
 
-          {/* To Address */}
-          <div className="px-4 py-2 bg-slate-50 rounded-lg border border-slate-200">
-            <p className="text-xs font-medium text-slate-600 mb-2">收件人</p>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 text-sm bg-white p-2 rounded border border-slate-200 break-all">
-                {email.to}
-              </code>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={handleCopyEmail}
-                className="h-8 w-8 p-0"
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
+          {/* Content */}
+          <div className="flex-1 overflow-hidden flex flex-col gap-4 p-4">
+            {/* Email Metadata */}
+            <div className="grid grid-cols-2 gap-4 px-4 py-2 bg-slate-50 rounded-lg border border-slate-200">
+              {email.status && (
+                <div>
+                  <p className="text-xs font-medium text-slate-600 mb-1">发送状态</p>
+                  <Badge className={getStatusColor(email.status)}>
+                    {getStatusLabel(email.status)}
+                  </Badge>
+                </div>
+              )}
+
+              {email.sentTime && (
+                <div>
+                  <p className="text-xs font-medium text-slate-600 mb-1">发送时间</p>
+                  <p className="text-sm text-slate-900">
+                    {new Date(email.sentTime).toLocaleString()}
+                  </p>
+                </div>
+              )}
+
+              {(email.from || email.senderEmail) && (
+                <div>
+                  <p className="text-xs font-medium text-slate-600 mb-1">发件人</p>
+                  <p className="text-sm text-slate-900 break-all">{email.from || email.senderEmail}</p>
+                </div>
+              )}
+
+              {email.errorMessage && (
+                <div>
+                  <p className="text-xs font-medium text-slate-600 mb-1">错误信息</p>
+                  <p className="text-sm text-red-600">{email.errorMessage}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Email Content */}
+            <div className="flex-1 overflow-hidden flex flex-col gap-2">
+              {/* Subject */}
+              <div className="px-4 py-2 bg-slate-50 rounded-lg border border-slate-200">
+                <p className="text-xs font-medium text-slate-600 mb-1">邮件主题</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-slate-900 flex-1 break-words">
+                    {email.subject}
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleCopySubject}
+                    className="h-6 w-6 p-0"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Recipients */}
+              <div className="px-4 py-2 bg-slate-50 rounded-lg border border-slate-200">
+                <p className="text-xs font-medium text-slate-600 mb-2">收件人</p>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="font-mono">
+                    {email.to}
+                  </Badge>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleCopyEmail}
+                    className="h-6 w-6 p-0"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Email Body */}
+              <div className="flex-1 overflow-hidden flex flex-col border border-slate-200 rounded-lg bg-white">
+                <p className="text-xs font-medium text-slate-600 px-4 py-2 border-b border-slate-200">
+                  邮件内容预览
+                </p>
+                <div className="flex-1 overflow-auto">
+                  <div className="p-4">
+                    <div
+                      className="prose prose-sm prose-table max-w-none text-slate-900"
+                      style={{
+                        wordBreak: 'break-word',
+                        overflowWrap: 'break-word',
+                      }}
+                    >
+                      {sanitizedHtml ? (
+                        <div dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />
+                      ) : (
+                        <p className="text-slate-500">邮件内容为空</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
+          {/* Footer */}
+          <div className="flex justify-end gap-2 px-6 py-4 border-t bg-slate-50">
+            <Button variant="outline" onClick={() => handleDownloadHtml()}>
+              <Download className="h-4 w-4 mr-2" />
+              下载HTML
+            </Button>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              关闭
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Normal mode - draggable and resizable
+  return (
+    <div
+      className="fixed z-50 bg-white rounded-lg shadow-2xl border border-slate-200 flex flex-col"
+      style={{
+        width: `${dimensions.width}px`,
+        height: `${dimensions.height}px`,
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+        cursor: isDragging ? 'grabbing' : 'default',
+      }}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+    >
+      {/* Header - Draggable */}
+      <div
+        className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100 rounded-t-lg cursor-grab active:cursor-grabbing flex items-center justify-between"
+        data-draggable-handle
+        onMouseDown={handleMouseDown}
+      >
+        <div className="flex items-center gap-2">
+          <Mail className="h-5 w-5" />
+          <div>
+            <h2 className="font-semibold text-slate-900">邮件详情</h2>
+            <p className="text-xs text-slate-500">查看完整的邮件内容和发送状态</p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsMaximized(true)}
+          >
+            <Maximize2 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onOpenChange(false)}
+          >
+            ✕
+          </Button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-hidden flex flex-col gap-4 p-4">
+        {/* Email Metadata */}
+        <div className="grid grid-cols-2 gap-4 px-4 py-2 bg-slate-50 rounded-lg border border-slate-200">
+          {email.status && (
+            <div>
+              <p className="text-xs font-medium text-slate-600 mb-1">发送状态</p>
+              <Badge className={getStatusColor(email.status)}>
+                {getStatusLabel(email.status)}
+              </Badge>
+            </div>
+          )}
+
+          {email.sentTime && (
+            <div>
+              <p className="text-xs font-medium text-slate-600 mb-1">发送时间</p>
+              <p className="text-sm text-slate-900">
+                {new Date(email.sentTime).toLocaleString()}
+              </p>
+            </div>
+          )}
+
+          {(email.from || email.senderEmail) && (
+            <div>
+              <p className="text-xs font-medium text-slate-600 mb-1">发件人</p>
+              <p className="text-sm text-slate-900 break-all">{email.from || email.senderEmail}</p>
+            </div>
+          )}
+
+          {email.errorMessage && (
+            <div>
+              <p className="text-xs font-medium text-slate-600 mb-1">错误信息</p>
+              <p className="text-sm text-red-600">{email.errorMessage}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Email Content */}
+        <div className="flex-1 overflow-hidden flex flex-col gap-2">
           {/* Subject */}
           <div className="px-4 py-2 bg-slate-50 rounded-lg border border-slate-200">
-            <p className="text-xs font-medium text-slate-600 mb-2">邮件主题</p>
+            <p className="text-xs font-medium text-slate-600 mb-1">邮件主题</p>
             <div className="flex items-center gap-2">
-              <div className="flex-1 text-sm bg-white p-2 rounded border border-slate-200 break-words">
+              <p className="text-sm font-medium text-slate-900 flex-1 break-words">
                 {email.subject}
-              </div>
+              </p>
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={handleCopySubject}
-                className="h-8 w-8 p-0 flex-shrink-0"
+                className="h-6 w-6 p-0"
               >
-                <Copy className="h-4 w-4" />
+                <Copy className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Recipients */}
+          <div className="px-4 py-2 bg-slate-50 rounded-lg border border-slate-200">
+            <p className="text-xs font-medium text-slate-600 mb-2">收件人</p>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="font-mono">
+                {email.to}
+              </Badge>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleCopyEmail}
+                className="h-6 w-6 p-0"
+              >
+                <Copy className="h-3 w-3" />
               </Button>
             </div>
           </div>
 
           {/* Email Body */}
           <div className="flex-1 overflow-hidden flex flex-col border border-slate-200 rounded-lg bg-white">
-            <div className="px-4 py-2 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-              <p className="text-xs font-medium text-slate-600">邮件内容</p>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={handleDownloadHtml}
-                className="h-8 px-2"
-              >
-                <Download className="h-4 w-4 mr-1" />
-                下载
-              </Button>
-            </div>
-            <ScrollArea className="flex-1 w-full">
-              <div className="p-4 min-w-max">
+            <p className="text-xs font-medium text-slate-600 px-4 py-2 border-b border-slate-200">
+              邮件内容预览
+            </p>
+            <div className="flex-1 overflow-auto">
+              <div className="p-4">
                 <div
                   className="prose prose-sm prose-table max-w-none text-slate-900"
                   style={{
                     wordBreak: 'break-word',
                     overflowWrap: 'break-word',
-                    minWidth: '100%',
                   }}
                 >
-                  <div dangerouslySetInnerHTML={{ __html: email.html }} />
+                  {sanitizedHtml ? (
+                    <div dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />
+                  ) : (
+                    <p className="text-slate-500">邮件内容为空</p>
+                  )}
                 </div>
               </div>
-            </ScrollArea>
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Close Button */}
-        <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            <X className="h-4 w-4 mr-2" />
-            关闭
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+      {/* Footer */}
+      <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-200 bg-slate-50">
+        <Button variant="outline" onClick={() => handleDownloadHtml()}>
+          <Download className="h-4 w-4 mr-2" />
+          下载HTML
+        </Button>
+        <Button variant="outline" onClick={() => onOpenChange(false)}>
+          关闭
+        </Button>
+      </div>
+
+      {/* Resize Handle */}
+      <div
+        className="absolute bottom-0 right-0 w-6 h-6 bg-slate-300 cursor-se-resize rounded-bl-lg hover:bg-slate-400 transition-colors"
+        onMouseDown={handleResizeStart}
+        title="拖动调整大小"
+      />
+    </div>
   );
 }
