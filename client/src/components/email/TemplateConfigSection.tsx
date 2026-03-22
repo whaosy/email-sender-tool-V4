@@ -230,7 +230,7 @@ export default function TemplateConfigSection({ onTemplateSelect }: TemplateConf
                     <div className="flex-1">
                       <p className="font-medium text-slate-900">{template.templateName}</p>
                       <p className="text-sm text-slate-600">{template.subject}</p>
-                      <p className="text-xs text-slate-500 line-clamp-2 mt-1">{template.body}</p>
+                      <div className="text-xs text-slate-500 line-clamp-2 mt-1 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: template.body }} />
                     </div>
                     <div className="flex gap-1">
                       <button

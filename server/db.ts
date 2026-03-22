@@ -171,7 +171,11 @@ export async function deleteEmailTemplate(templateId: number) {
 export async function createEmailLog(log: InsertEmailLog) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.insert(emailLogs).values(log);
+  if (!log.taskId) {
+    throw new Error("taskId is required for email log");
+  }
+  const result = await db.insert(emailLogs).values(log);
+  return result;
 }
 
 export async function getTaskEmailLogs(taskId: number) {

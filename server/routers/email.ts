@@ -693,14 +693,15 @@ export const emailRouter = router({
           
           try {
             console.log(`Creating log for email ${i+1}/${emailsToSend.length}: ${emailToSend.to} - status: ${result?.success ? 'success' : 'failed'}`);
+            const status = (result?.success ? 'success' : 'failed') as 'pending' | 'sending' | 'success' | 'failed';
             await createEmailLog({
-              taskId,
+              taskId: taskId,
               recipientEmail: emailToSend.to,
               recipientName: emailToSend.to.split('@')[0],
               subject: emailToSend.subject,
               emailContent: emailToSend.html,
               senderEmail: smtpConfig.senderEmail,
-              status: result?.success ? 'success' : 'failed',
+              status: status,
               errorMessage: result?.error || null,
               sentAt: result?.success ? new Date() : null,
               retryCount: 0,

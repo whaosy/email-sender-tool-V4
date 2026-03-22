@@ -38,7 +38,14 @@ export default function EmailPreviewDialog({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [sanitizedHtml, setSanitizedHtml] = useState('');
 
-  if (emails.length === 0) {
+  // Reset index when dialog opens
+  useEffect(() => {
+    if (open) {
+      setCurrentIndex(0);
+    }
+  }, [open]);
+
+  if (!open || emails.length === 0) {
     return null;
   }
 
