@@ -45,17 +45,15 @@ export default function EmailPreviewDialog({
     }
   }, [open]);
 
-  if (!open || emails.length === 0) {
-    return null;
-  }
-
-  const currentEmail = emails[currentIndex];
-  const hasNext = currentIndex < emails.length - 1;
-  const hasPrev = currentIndex > 0;
-
-  // Sanitize HTML to prevent DOM errors
+  // Sanitize HTML when email changes - moved to separate effect to avoid render-phase updates
   useEffect(() => {
-    if (!currentEmail.html) {
+    if (!open || emails.length === 0 || currentIndex >= emails.length) {
+      setSanitizedHtml('');
+      return;
+    }
+    
+    const currentEmail = emails[currentIndex];
+    if (!currentEmail?.html) {
       setSanitizedHtml('');
       return;
     }
@@ -69,7 +67,39 @@ export default function EmailPreviewDialog({
     scripts.forEach(el => el.remove());
     
     setSanitizedHtml(temp.innerHTML);
-  }, [currentEmail.html]);
+  }, [open, currentIndex, emails]);
+
+  // Guard: don't render Dialog content if not open
+  if (!open) {
+    return (
+      <Dialog open={false} onOpenChange={onOpenChange}>
+        <DialogContent />
+      </Dialog>
+    );
+  }
+
+  // Guard: show empty state if no emails
+  if (emails.length === 0) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              邮件预览
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-8 text-center text-slate-500">
+            没有邮件可预览
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  const currentEmail = emails[currentIndex];
+  const hasNext = currentIndex < emails.length - 1;
+  const hasPrev = currentIndex > 0;
 
   const handleNext = () => {
     if (hasNext) {
@@ -87,8 +117,6 @@ export default function EmailPreviewDialog({
     navigator.clipboard.writeText(currentEmail.to);
     toast.success('邮箱地址已复制');
   };
-
-
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -162,7 +190,7 @@ export default function EmailPreviewDialog({
               </div>
             </div>
 
-            {/* Email Body - Use iframe to prevent DOM issues */}
+            {/* Email Body */}
             <div className="flex-1 overflow-hidden flex flex-col border border-slate-200 rounded-lg bg-white">
               <p className="text-xs font-medium text-slate-600 px-4 py-2 border-b border-slate-200">
                 邮件内容预览

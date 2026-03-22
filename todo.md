@@ -37,6 +37,6 @@
 - [x] 首页导航到 /email-sender 路由返回 404
 
 #### 关键 Bug 修复（用户反馈）
-- [x] Bug #1: 点击“生成邮件预览”报 React error #310 - 已修复
-- [x] Bug #2: 模板中的列表格式在预览中不昺示，但实际邮件中生效 - 已修复
-- [x] Bug #3: 邮件发送成功但历史记录昺示 0成功/0失败 - 已修复
+- [x] Bug #1: 点击“生成邮件预览”报 React error #310 - 已修复（移除 early return，优化 useEffect）
+- [x] Bug #2: 模板中的列表格式在预览中不昺示 - 已修复（使用 dangerouslySetInnerHTML）
+- [x] Bug #3: 邮件发送成功但历史记录昺示 0成功/0失败 - 已修复（修复 insertId 取值、taskId 类型转换）

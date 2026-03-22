@@ -114,9 +114,12 @@ export default function TemplateConfigSection({ onTemplateSelect }: TemplateConf
             <p className="text-sm text-green-800">
               <span className="font-medium">主题：</span>{selectedTemplate.subject}
             </p>
-            <p className="text-sm text-green-800 line-clamp-2">
-              <span className="font-medium">预览：</span>{selectedTemplate.body}
-            </p>
+            <div className="text-sm text-green-800 space-y-2">
+              <span className="font-medium block">预览：</span>
+              <div className="prose prose-sm max-w-none bg-white p-3 rounded border border-green-200 max-h-48 overflow-y-auto">
+                <div dangerouslySetInnerHTML={{ __html: selectedTemplate.body }} />
+              </div>
+            </div>
           </div>
         )}
 

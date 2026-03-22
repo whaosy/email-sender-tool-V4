@@ -94,7 +94,8 @@ export async function createEmailTask(task: InsertEmailTask) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const result = await db.insert(emailTasks).values(task);
-  return result;
+  // Drizzle with MySQL2 returns result[0] which has insertId
+  return { insertId: (result as any)[0]?.insertId || 0 };
 }
 
 export async function getEmailTask(taskId: number) {

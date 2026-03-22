@@ -692,10 +692,10 @@ export const emailRouter = router({
           const result = results[i];
           
           try {
-            console.log(`Creating log for email ${i+1}/${emailsToSend.length}: ${emailToSend.to} - status: ${result?.success ? 'success' : 'failed'}`);
+            console.log(`Creating log for email ${i+1}/${emailsToSend.length}: ${emailToSend.to} - status: ${result?.success ? 'success' : 'failed'} - taskId: ${taskId}`);
             const status = (result?.success ? 'success' : 'failed') as 'pending' | 'sending' | 'success' | 'failed';
-            await createEmailLog({
-              taskId: taskId,
+            const logData = {
+              taskId: Number(taskId),
               recipientEmail: emailToSend.to,
               recipientName: emailToSend.to.split('@')[0],
               subject: emailToSend.subject,
@@ -705,7 +705,9 @@ export const emailRouter = router({
               errorMessage: result?.error || null,
               sentAt: result?.success ? new Date() : null,
               retryCount: 0,
-            });
+            };
+            console.log(`Log data for ${emailToSend.to}:`, { taskId: logData.taskId, status: logData.status });
+            await createEmailLog(logData);
             console.log(`Successfully created log for email ${emailToSend.to}`);
           } catch (logError) {
             console.error(`Failed to save email log for ${emailToSend.to}:`, logError);
