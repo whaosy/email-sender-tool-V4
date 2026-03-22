@@ -14,7 +14,7 @@ export default function Home() {
   const canAccess = true; // Always allow access for testing
 
   const handleNavigateToEmail = () => {
-    navigate("/email");
+    navigate("/email-sender");
   };
 
   if (canAccess) {
