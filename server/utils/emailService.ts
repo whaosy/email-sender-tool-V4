@@ -89,11 +89,43 @@ export async function sendEmail(
   }
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
+    // Add CSS styles to HTML for proper rendering in email clients
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          h1 { font-size: 32px; margin: 20px 0 10px 0; font-weight: bold; }
+          h2 { font-size: 24px; margin: 16px 0 8px 0; font-weight: bold; }
+          h3 { font-size: 20px; margin: 12px 0 6px 0; font-weight: bold; }
+          h4 { font-size: 18px; margin: 10px 0 5px 0; font-weight: bold; }
+          h5 { font-size: 16px; margin: 8px 0 4px 0; font-weight: bold; }
+          h6 { font-size: 14px; margin: 6px 0 3px 0; font-weight: bold; }
+          ul, ol { margin: 10px 0; padding-left: 20px; }
+          li { margin: 5px 0; }
+          a { color: #0066cc; text-decoration: none; }
+          a:hover { text-decoration: underline; }
+          code { background-color: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-family: 'Courier New', monospace; font-size: 14px; }
+          pre { background-color: #f5f5f5; padding: 12px; border-radius: 4px; overflow-x: auto; border: 1px solid #ddd; }
+          pre code { background-color: transparent; padding: 0; }
+          table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background-color: #f5f5f5; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        ${options.html}
+      </body>
+      </html>
+    `;
+    
     const info = await transporter.sendMail({
       from: options.from,
       to: Array.isArray(options.to) ? options.to.join(',') : options.to,
       subject: options.subject,
-      html: options.html,
+      html: emailHtml,
     });
     
     return {

@@ -220,7 +220,7 @@ export default function ResizableEmailPreviewDialog({
                 <div className="flex-1 overflow-auto">
                   <div className="p-4">
                     <div
-                      className="prose prose-sm prose-table max-w-none text-slate-900"
+                      className="prose prose-sm prose-table prose-ul prose-ol prose-li prose-a prose-code prose-pre prose-h1 prose-h2 prose-h3 prose-h4 prose-h5 prose-h6 max-w-none text-slate-900"
                       style={{
                         wordBreak: 'break-word',
                         overflowWrap: 'break-word',
@@ -368,24 +368,24 @@ export default function ResizableEmailPreviewDialog({
             </p>
             <div className="flex-1 overflow-auto">
               <div className="p-4">
-                <div
-                  className="prose prose-sm prose-table max-w-none text-slate-900"
-                  style={{
-                    wordBreak: 'break-word',
-                    overflowWrap: 'break-word',
-                  }}
-                >
-                  {sanitizedHtml ? (
-                    <div dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />
-                  ) : (
-                    <p className="text-slate-500">邮件内容为空</p>
-                  )}
+                    <div
+                      className="prose prose-sm prose-table prose-ul prose-ol prose-li prose-a prose-code prose-pre prose-h1 prose-h2 prose-h3 prose-h4 prose-h5 prose-h6 max-w-none text-slate-900"
+                      style={{
+                        wordBreak: 'break-word',
+                        overflowWrap: 'break-word',
+                      }}
+                    >
+                      {sanitizedHtml ? (
+                        <div dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />
+                      ) : (
+                        <p className="text-slate-500">邮件内容为空</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
       {/* Footer */}
       <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-200 bg-slate-50">
