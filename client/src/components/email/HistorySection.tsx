@@ -29,6 +29,8 @@ export default function HistorySection() {
   const [isRetrying, setIsRetrying] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState<any | null>(null);
   const [showEmailDetail, setShowEmailDetail] = useState(false);
+  const [selectedLogIds, setSelectedLogIds] = useState<Set<number>>(new Set());
+  const [isBatchRetrying, setIsBatchRetrying] = useState(false);
 
   const taskListQuery = trpc.emailHistory.getTaskList.useQuery({ page: 1, pageSize: 20 });
   const taskDetailsQuery = trpc.emailHistory.getTaskDetails.useQuery(
@@ -66,6 +68,41 @@ export default function HistorySection() {
       toast.error(error.message || '重试失败');
     } finally {
       setIsRetrying(false);
+    }
+  };
+
+  const handleRetrySelected = async (taskId: number, emailIds: number[]) => {
+    setIsBatchRetrying(true);
+    try {
+      const result = await retryMutation.mutateAsync({ taskId, emailIds });
+      if (result.success) {
+        toast.success(result.message);
+        setSelectedLogIds(new Set());
+        await taskDetailsQuery.refetch();
+        await taskListQuery.refetch();
+      }
+    } catch (error: any) {
+      toast.error(error.message || '重试失败');
+    } finally {
+      setIsBatchRetrying(false);
+    }
+  };
+
+  const handleToggleLogSelection = (logId: number) => {
+    const newSelected = new Set(selectedLogIds);
+    if (newSelected.has(logId)) {
+      newSelected.delete(logId);
+    } else {
+      newSelected.add(logId);
+    }
+    setSelectedLogIds(newSelected);
+  };
+
+  const handleToggleAllLogs = (logs: TaskLog[]) => {
+    if (selectedLogIds.size === logs.length) {
+      setSelectedLogIds(new Set());
+    } else {
+      setSelectedLogIds(new Set(logs.map(log => log.id)));
     }
   };
 
@@ -221,8 +258,36 @@ export default function HistorySection() {
         )}
 
         {/* Action Buttons */}
-        <div className="flex gap-2">
-          {stats && stats.failure > 0 && (
+        <div className="flex gap-2 flex-wrap">
+          {selectedLogIds.size > 0 && (
+            <>
+              <Button
+                onClick={() => handleRetrySelected(selectedTaskId!, Array.from(selectedLogIds))}
+                disabled={isBatchRetrying}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+              >
+                {isBatchRetrying ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    重试中...
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="h-4 w-4" />
+                    重试选中的 {selectedLogIds.size} 封邮件
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={() => setSelectedLogIds(new Set())}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                取消选择
+              </Button>
+            </>
+          )}
+          {stats && stats.failure > 0 && selectedLogIds.size === 0 && (
             <Button
               onClick={() => handleRetryFailed(selectedTaskId!)}
               disabled={isRetrying}
@@ -236,7 +301,7 @@ export default function HistorySection() {
               ) : (
                 <>
                   <RotateCcw className="h-4 w-4" />
-                  重试失败邮件
+                  重试所有失败邮件
                 </>
               )}
             </Button>
@@ -267,6 +332,14 @@ export default function HistorySection() {
             <table className="w-full text-sm">
               <thead className="bg-slate-100 border-b">
                 <tr>
+                  <th className="px-4 py-2 text-left font-medium text-slate-900">
+                    <input
+                      type="checkbox"
+                      checked={selectedLogIds.size === logs.length && logs.length > 0}
+                      onChange={() => handleToggleAllLogs(logs)}
+                      className="w-4 h-4 cursor-pointer"
+                    />
+                  </th>
                   <th className="px-4 py-2 text-left font-medium text-slate-900">收件人</th>
                   <th className="px-4 py-2 text-left font-medium text-slate-900">状态</th>
                   <th className="px-4 py-2 text-left font-medium text-slate-900">发送时间</th>
@@ -277,13 +350,21 @@ export default function HistorySection() {
               <tbody>
                 {logs.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-slate-600">
+                    <td colSpan={6} className="px-4 py-8 text-center text-slate-600">
                       暂无日志数据
                     </td>
                   </tr>
                 ) : (
                   logs.map((log: TaskLog) => (
                     <tr key={log.id} className="border-b hover:bg-slate-50">
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedLogIds.has(log.id)}
+                          onChange={() => handleToggleLogSelection(log.id)}
+                          className="w-4 h-4 cursor-pointer"
+                        />
+                      </td>
                       <td className="px-4 py-3 text-slate-900">{log.recipientEmail}</td>
                       <td className="px-4 py-3">{getStatusBadge(log.status)}</td>
                       <td className="px-4 py-3 text-slate-600">
@@ -292,7 +373,19 @@ export default function HistorySection() {
                       <td className="px-4 py-3 text-red-600 text-xs max-w-xs truncate" title={log.errorMessage || ''}>
                         {log.errorMessage || '-'}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 flex gap-2">
+                        {log.status === 'failed' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRetrySelected(selectedTaskId!, [log.id])}
+                            disabled={isBatchRetrying}
+                            className="h-8 px-2"
+                            title="重新发送此邮件"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           variant="ghost"
