@@ -73,3 +73,7 @@
 
 ## 第七轮 Bug 修复（用户反馈）
 - [x] Bug #18: 邮件主题中 {settlementAmount} 和 {currentDate} 占位符未被替换 - 已修复
+
+
+## 第八轮 Bug 修复（用户反馈）
+- [x] Bug #19: 邮件正文需要存储到数据库 - 已修复（使用实际的 emailContent 字段）

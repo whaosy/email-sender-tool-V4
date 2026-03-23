@@ -14,6 +14,7 @@ interface TaskLog {
   recipientEmail: string;
   recipientName: string | null;
   subject: string | null;
+  emailContent: string | null;
   status: 'success' | 'sending' | 'failed' | 'pending' | null;
   errorMessage: string | null;
   sentAt: Date | null;
@@ -331,7 +332,7 @@ export default function HistorySection() {
                               to: log.recipientEmail,
                               recipientName: log.recipientName || '未知',
                               subject: log.subject || '未知',
-                              html: emailDetailHtml,
+                              html: log.emailContent || emailDetailHtml,
                               status: log.status,
                               sentTime: log.sentAt,
                               errorMessage: log.errorMessage,
