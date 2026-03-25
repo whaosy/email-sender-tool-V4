@@ -98,7 +98,7 @@ export async function sendEmail(
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           h1 { font-size: 32px; margin: 20px 0 10px 0; font-weight: bold; }
-          h2 { font-size: 24px; margin: 16px 0 8px 0; font-weight: bold; }
+          h2 { font-size: 24px; margin: 16px 0 8px 0; font-weight: bold; border-bottom: 2px solid #ddd; padding-bottom: 8px; }
           h3 { font-size: 20px; margin: 12px 0 6px 0; font-weight: bold; }
           h4 { font-size: 18px; margin: 10px 0 5px 0; font-weight: bold; }
           h5 { font-size: 16px; margin: 8px 0 4px 0; font-weight: bold; }
