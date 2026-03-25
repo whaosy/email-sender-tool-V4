@@ -41,6 +41,7 @@ export const emailTasks = mysqlTable("emailTasks", {
   failureCount: int("failureCount").default(0),
   status: mysqlEnum("status", ["draft", "scheduled", "sending", "completed", "failed"]).default("draft"),
   sendType: mysqlEnum("sendType", ["immediate", "scheduled"]).default("immediate"),
+  settlementType: mysqlEnum("settlementType", ["bySheet", "byRow"]).default("bySheet").notNull(),
   scheduledTime: timestamp("scheduledTime"),
   startTime: timestamp("startTime"),
   endTime: timestamp("endTime"),

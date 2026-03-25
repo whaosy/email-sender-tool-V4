@@ -10,6 +10,8 @@ import DataPreviewDialog from './DataPreviewDialog';
 
 interface FileUploadSectionProps {
   onFileUpload: (file: any) => void;
+  settlementType?: 'bySheet' | 'byRow';
+  onSettlementTypeChange?: (type: 'bySheet' | 'byRow') => void;
 }
 
 interface UploadedFileData {
@@ -22,10 +24,11 @@ interface UploadedFileData {
   merchantCount?: number;
 }
 
-export default function FileUploadSection({ onFileUpload }: FileUploadSectionProps) {
+export default function FileUploadSection({ onFileUpload, settlementType = 'bySheet', onSettlementTypeChange }: FileUploadSectionProps) {
   const [isDragging, setIsDragging] = useState<'data' | 'mapping' | null>(null);
   const [dataFile, setDataFile] = useState<UploadedFileData | null>(null);
   const [mappingFile, setMappingFile] = useState<UploadedFileData | null>(null);
+  const [localSettlementType, setLocalSettlementType] = useState<'bySheet' | 'byRow'>(settlementType);
   const [mappingConfig, setMappingConfig] = useState<{ merchantColumn: string; emailColumn: string }>({
     merchantColumn: '商户名称',
     emailColumn: '收件人邮箱',
@@ -154,13 +157,57 @@ export default function FileUploadSection({ onFileUpload }: FileUploadSectionPro
         <CardDescription>上传结算数据和商户邮箱映射文件</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Settlement Type Selection */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-slate-700">
+            结算文件类型 <span className="text-red-500">*</span>
+          </label>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="settlementType"
+                value="bySheet"
+                checked={localSettlementType === 'bySheet'}
+                onChange={(e) => {
+                  setLocalSettlementType('bySheet');
+                  onSettlementTypeChange?.('bySheet');
+                }}
+                className="w-4 h-4"
+              />
+              <span className="text-sm text-slate-700">按Sheet表格结算</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="settlementType"
+                value="byRow"
+                checked={localSettlementType === 'byRow'}
+                onChange={(e) => {
+                  setLocalSettlementType('byRow');
+                  onSettlementTypeChange?.('byRow');
+                }}
+                className="w-4 h-4"
+              />
+              <span className="text-sm text-slate-700">按表格记录行结算</span>
+            </label>
+          </div>
+          <p className="text-xs text-slate-500">
+            {localSettlementType === 'bySheet'
+              ? '每个Sheet表为一个商户的结算数据'
+              : '根据商户名称列进行结算，相同商户的数据会连续出现'}
+          </p>
+        </div>
+
         {/* Data File Upload */}
         <div className="space-y-2">
           <label className="text-sm font-medium text-slate-700">
-            1. 结算数据文件 <span className="text-red-500">*</span>
+            2. 结算数据文件 <span className="text-red-500">*</span>
           </label>
           <p className="text-xs text-slate-500">
-            Excel文件，每个sheet为一个商户，sheet名称为商户名称
+            {localSettlementType === 'bySheet'
+              ? 'Excel文件，每个sheet为一个商户，sheet名称为商户名称'
+              : 'Excel文件，第一个sheet中根据商户名称列进行结算'}
           </p>
           <div
             onDragOver={(e) => handleDragOver(e, 'data')}
@@ -228,7 +275,7 @@ export default function FileUploadSection({ onFileUpload }: FileUploadSectionPro
         {/* Mapping File Upload */}
         <div className="space-y-2">
           <label className="text-sm font-medium text-slate-700">
-            2. 商户邮箱映射文件 <span className="text-slate-400">(可选)</span>
+            3. 商户邮箱映射文件 <span className="text-slate-400">(可选)</span>
           </label>
           <p className="text-xs text-slate-500">
             Excel文件，包含商户名称和收件人邮箱列

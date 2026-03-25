@@ -170,6 +170,9 @@ export default function HistorySection() {
                       </p>
                       <div className="flex items-center gap-2 mt-2">
                         <Badge variant="outline">{task.status}</Badge>
+                        <Badge variant="secondary">
+                          {task.settlementType === 'byRow' ? '按表格记录行结算' : '按Sheet表格结算'}
+                        </Badge>
                         {task.successCount !== undefined && (
                           <span className="text-sm text-slate-600">
                             成功: {task.successCount}, 失败: {task.failureCount || 0}

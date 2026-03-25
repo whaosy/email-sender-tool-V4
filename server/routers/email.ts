@@ -21,7 +21,7 @@ import {
   updateScheduledJob,
 } from '../db';
 import { storagePut } from '../storage';
-import { parseExcelFile, replaceTemplateVariables, extractTemplateVariables, arrayToHtmlTable, buildMerchantEmailMapping, calculateColumnSum, generateEmailContent } from '../utils/excel';
+import { parseExcelFile, replaceTemplateVariables, extractTemplateVariables, arrayToHtmlTable, buildMerchantEmailMapping, calculateColumnSum, generateEmailContent, generateRowBasedEmailData, sortDataByMerchant } from '../utils/excel';
 import { encryptAuthCode, decryptAuthCode, createSmtpTransporter, testSmtpConnection, batchSendEmails } from '../utils/emailService';
 import { scheduleTask, cancelTask } from '../utils/scheduler';
 import { notifyOwner } from '../_core/notification';
@@ -508,6 +508,7 @@ export const emailRouter = router({
         mappingFileKey: z.string().optional(),
         merchantColumn: z.string().default('商户名称'),
         emailColumn: z.string().default('收件人邮箱'),
+        settlementType: z.enum(['bySheet', 'byRow']).default('bySheet'),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -539,6 +540,7 @@ export const emailRouter = router({
           excelFileUrl: '', // Will be set from S3
           totalRecipients: 0,
           status: 'sending',
+          settlementType: input.settlementType,
           startTime: new Date(),
         });
 
@@ -627,55 +629,107 @@ export const emailRouter = router({
           throw new Error('Invalid sheets data structure');
         }
 
-        for (const sheetName of dataFileParsed.sheetNames) {
-          if (!sheetName || typeof sheetName !== 'string') {
-            console.warn('Invalid sheet name encountered');
-            continue;
+        if (input.settlementType === 'byRow') {
+          // Row-based settlement: process first sheet only, group by merchant name
+          const firstSheetName = dataFileParsed.sheetNames[0];
+          const firstSheetData = dataFileParsed.sheets[firstSheetName] || [];
+          
+          if (!Array.isArray(firstSheetData) || firstSheetData.length === 0) {
+            throw new Error('First sheet is empty');
           }
           
-          const sheetData = dataFileParsed.sheets[sheetName];
-          if (!sheetData || !Array.isArray(sheetData) || sheetData.length === 0) {
-            console.warn(`Sheet ${sheetName} is empty or invalid`);
-            continue;
+          // Sort data by merchant name
+          const sortedData = sortDataByMerchant(firstSheetData, input.merchantColumn);
+          
+          // Group data by merchant
+          const merchantGroups = generateRowBasedEmailData(sortedData, input.merchantColumn);
+          
+          for (const [merchantName, groupData] of Object.entries(merchantGroups)) {
+            // Generate data detail HTML table
+            const dataDetailHtml = arrayToHtmlTable(groupData);
+            
+            // Calculate settlement amount
+            const settlementAmount = calculateColumnSum(groupData, '金额');
+            
+            // Generate email content
+            const emailContent = generateEmailContent(
+              template.body,
+              dataDetailHtml,
+              settlementAmount,
+              merchantName
+            );
+            
+            // Replace all placeholders in subject
+            let subject = template.subject;
+            subject = subject.replace(/{merchantName}/g, merchantName);
+            subject = subject.replace(/{{merchantName}}/g, merchantName);
+            subject = subject.replace(/{settlementAmount}/g, settlementAmount.toFixed(2));
+            subject = subject.replace(/{{settlementAmount}}/g, settlementAmount.toFixed(2));
+            const currentDate = new Date().toLocaleDateString('zh-CN');
+            subject = subject.replace(/{currentDate}/g, currentDate);
+            subject = subject.replace(/{{currentDate}}/g, currentDate);
+            
+            const emails = merchantEmailMapping[merchantName] || ['test@example.com'];
+            for (const email of emails) {
+              emailsToSend.push({
+                to: email,
+                subject: subject,
+                html: emailContent,
+              });
+            }
           }
+        } else {
+          // Sheet-based settlement: original logic
+          for (const sheetName of dataFileParsed.sheetNames) {
+            if (!sheetName || typeof sheetName !== 'string') {
+              console.warn('Invalid sheet name encountered');
+              continue;
+            }
+            
+            const sheetData = dataFileParsed.sheets[sheetName];
+            if (!sheetData || !Array.isArray(sheetData) || sheetData.length === 0) {
+              console.warn(`Sheet ${sheetName} is empty or invalid`);
+              continue;
+            }
 
-          const emails = merchantEmailMapping[sheetName];
-          if (!emails || !Array.isArray(emails) || emails.length === 0) {
-            console.warn(`No emails found for merchant ${sheetName}, using default test email`);
-          }
-          const emailList = emails && Array.isArray(emails) && emails.length > 0 ? emails : ['test@example.com'];
+            const emails = merchantEmailMapping[sheetName];
+            if (!emails || !Array.isArray(emails) || emails.length === 0) {
+              console.warn(`No emails found for merchant ${sheetName}, using default test email`);
+            }
+            const emailList = emails && Array.isArray(emails) && emails.length > 0 ? emails : ['test@example.com'];
 
-          // Generate data detail HTML table
-          const dataDetailHtml = arrayToHtmlTable(sheetData);
+            // Generate data detail HTML table
+            const dataDetailHtml = arrayToHtmlTable(sheetData);
 
-          // Calculate settlement amount (sum of '金额' column)
-          const settlementAmount = calculateColumnSum(sheetData, '金额');
+            // Calculate settlement amount (sum of '金额' column)
+            const settlementAmount = calculateColumnSum(sheetData, '金额');
 
-          // Generate email content
-          const emailContent = generateEmailContent(
-            template.body,
-            dataDetailHtml,
-            settlementAmount,
-            sheetName
-          );
+            // Generate email content
+            const emailContent = generateEmailContent(
+              template.body,
+              dataDetailHtml,
+              settlementAmount,
+              sheetName
+            );
 
-          // Replace all placeholders in subject
-          let subject = template.subject;
-          subject = subject.replace(/{merchantName}/g, sheetName);
-          subject = subject.replace(/{{merchantName}}/g, sheetName);
-          subject = subject.replace(/{settlementAmount}/g, settlementAmount.toFixed(2));
-          subject = subject.replace(/{{settlementAmount}}/g, settlementAmount.toFixed(2));
-          const currentDate = new Date().toLocaleDateString('zh-CN');
-          subject = subject.replace(/{currentDate}/g, currentDate);
-          subject = subject.replace(/{{currentDate}}/g, currentDate);
+            // Replace all placeholders in subject
+            let subject = template.subject;
+            subject = subject.replace(/{merchantName}/g, sheetName);
+            subject = subject.replace(/{{merchantName}}/g, sheetName);
+            subject = subject.replace(/{settlementAmount}/g, settlementAmount.toFixed(2));
+            subject = subject.replace(/{{settlementAmount}}/g, settlementAmount.toFixed(2));
+            const currentDate = new Date().toLocaleDateString('zh-CN');
+            subject = subject.replace(/{currentDate}/g, currentDate);
+            subject = subject.replace(/{{currentDate}}/g, currentDate);
 
-          // Add email for each recipient
-          for (const email of emailList) {
-            emailsToSend.push({
-              to: email,
-              subject: subject,
-              html: emailContent,
-            });
+            // Add email for each recipient
+            for (const email of emailList) {
+              emailsToSend.push({
+                to: email,
+                subject: subject,
+                html: emailContent,
+              });
+            }
           }
         }
 

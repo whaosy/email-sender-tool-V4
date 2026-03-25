@@ -6,7 +6,7 @@ import {
   getSmtpConfig,
 } from '../db';
 import { generateEmailPreviews, generateSingleEmailPreview } from '../utils/emailPreview';
-import { buildMerchantEmailMapping, parseExcelFile } from '../utils/excel';
+import { buildMerchantEmailMapping, parseExcelFile, generateRowBasedEmailData, sortDataByMerchant, arrayToHtmlTable, calculateColumnSum, generateEmailContent } from '../utils/excel';
 
 export const emailPreviewRouter = router({
   // Generate email previews
@@ -18,6 +18,7 @@ export const emailPreviewRouter = router({
         mappingFileKey: z.string().optional(),
         merchantColumn: z.string().default('商户名称'),
         emailColumn: z.string().default('收件人邮箱'),
+        settlementType: z.enum(['bySheet', 'byRow']).default('bySheet'),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -81,13 +82,62 @@ export const emailPreviewRouter = router({
           }
         }
 
-        // Generate previews
-        const previews = await generateEmailPreviews(
-          Buffer.from(dataFileBuffer),
-          template.subject,
-          template.body,
-          merchantEmailMapping
-        );
+        // Generate previews based on settlement type
+        let previews;
+        if (input.settlementType === 'byRow') {
+          // Parse data file for row-based settlement
+          const dataFileParsed = await parseExcelFile(Buffer.from(dataFileBuffer));
+          if (!dataFileParsed.success || !dataFileParsed.sheetNames || !dataFileParsed.sheets) {
+            throw new Error('Failed to parse data file');
+          }
+          
+          const firstSheetName = dataFileParsed.sheetNames[0];
+          const firstSheetData = dataFileParsed.sheets[firstSheetName] || [];
+          
+          // Sort data by merchant name
+          const sortedData = sortDataByMerchant(firstSheetData, input.merchantColumn);
+          
+          // Group data by merchant and generate previews
+          previews = [];
+          const merchantGroups = generateRowBasedEmailData(sortedData, input.merchantColumn);
+          
+          for (const [merchantName, groupData] of Object.entries(merchantGroups)) {
+            const dataDetailHtml = arrayToHtmlTable(groupData);
+            const settlementAmount = calculateColumnSum(groupData, '金额');
+            const emailContent = generateEmailContent(
+              template.body,
+              dataDetailHtml,
+              settlementAmount,
+              merchantName
+            );
+            
+            const emails = merchantEmailMapping?.[merchantName] || ['test@example.com'];
+            for (const email of emails) {
+              let replacedSubject = template.subject
+                .replace(/{merchantName}/g, merchantName)
+                .replace(/{{merchantName}}/g, merchantName)
+                .replace(/{settlementAmount}/g, settlementAmount.toFixed(2))
+                .replace(/{{settlementAmount}}/g, settlementAmount.toFixed(2))
+                .replace(/{currentDate}/g, new Date().toLocaleDateString('zh-CN'))
+                .replace(/{{currentDate}}/g, new Date().toLocaleDateString('zh-CN'));
+              
+              previews.push({
+                to: email,
+                subject: replacedSubject,
+                html: emailContent,
+                merchantName: merchantName,
+              });
+            }
+          }
+        } else {
+          // Original bySheet settlement logic
+          previews = await generateEmailPreviews(
+            Buffer.from(dataFileBuffer),
+            template.subject,
+            template.body,
+            merchantEmailMapping
+          );
+        }
 
         return {
           success: true,

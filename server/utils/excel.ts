@@ -261,3 +261,67 @@ export function generateEmailContent(
   
   return content;
 }
+
+
+/**
+ * Group data by merchant name (按表格记录行结算)
+ * Groups consecutive rows with the same merchant name together
+ * Returns an object where keys are merchant names and values are arrays of data rows
+ */
+export function groupDataByMerchant(
+  data: any[],
+  merchantColumn: string = '商户名称'
+): Record<string, any[]> {
+  const groups: Record<string, any[]> = {};
+  
+  for (const row of data) {
+    const merchantName = row[merchantColumn];
+    if (!merchantName) continue;
+    
+    if (!groups[merchantName]) {
+      groups[merchantName] = [];
+    }
+    groups[merchantName].push(row);
+  }
+  
+  return groups;
+}
+
+/**
+ * Generate email data for row-based settlement
+ * For each merchant, includes header row + data rows
+ */
+export function generateRowBasedEmailData(
+  data: any[],
+  merchantColumn: string = '商户名称'
+): Record<string, any[]> {
+  if (data.length === 0) return {};
+  
+  // Get header row (first row)
+  const headerRow = data[0];
+  
+  // Group data by merchant
+  const groups = groupDataByMerchant(data, merchantColumn);
+  
+  // For each merchant, prepend header row
+  const result: Record<string, any[]> = {};
+  for (const [merchantName, rows] of Object.entries(groups)) {
+    result[merchantName] = [headerRow, ...rows];
+  }
+  
+  return result;
+}
+
+/**
+ * Sort data by merchant name to ensure consecutive rows are grouped
+ */
+export function sortDataByMerchant(
+  data: any[],
+  merchantColumn: string = '商户名称'
+): any[] {
+  return [...data].sort((a, b) => {
+    const aName = String(a[merchantColumn] || '');
+    const bName = String(b[merchantColumn] || '');
+    return aName.localeCompare(bName);
+  });
+}

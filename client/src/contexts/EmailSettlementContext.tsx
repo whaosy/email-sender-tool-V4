@@ -5,6 +5,7 @@ interface EmailSettlementState {
   selectedTemplate: any;
   selectedSmtpConfig: any;
   mappingFile?: any;
+  settlementType: 'bySheet' | 'byRow';
 }
 
 interface EmailSettlementContextType {
@@ -13,6 +14,7 @@ interface EmailSettlementContextType {
   setSelectedTemplate: (template: any) => void;
   setSelectedSmtpConfig: (config: any) => void;
   setMappingFile: (file: any) => void;
+  setSettlementType: (type: 'bySheet' | 'byRow') => void;
   reset: () => void;
 }
 
@@ -24,6 +26,7 @@ export function EmailSettlementProvider({ children }: { children: ReactNode }) {
     selectedTemplate: null,
     selectedSmtpConfig: null,
     mappingFile: undefined,
+    settlementType: 'bySheet',
   });
 
   const setUploadedFile = (file: any) => {
@@ -42,12 +45,17 @@ export function EmailSettlementProvider({ children }: { children: ReactNode }) {
     setState((prev) => ({ ...prev, mappingFile: file }));
   };
 
+  const setSettlementType = (type: 'bySheet' | 'byRow') => {
+    setState((prev) => ({ ...prev, settlementType: type }));
+  };
+
   const reset = () => {
     setState({
       uploadedFile: null,
       selectedTemplate: null,
       selectedSmtpConfig: null,
       mappingFile: undefined,
+      settlementType: 'bySheet',
     });
   };
 
@@ -59,6 +67,7 @@ export function EmailSettlementProvider({ children }: { children: ReactNode }) {
         setSelectedTemplate,
         setSelectedSmtpConfig,
         setMappingFile,
+        setSettlementType,
         reset,
       }}
     >

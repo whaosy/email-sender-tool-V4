@@ -1,0 +1,1 @@
+ALTER TABLE `emailTasks` ADD `settlementType` enum('bySheet','byRow') DEFAULT 'bySheet' NOT NULL;

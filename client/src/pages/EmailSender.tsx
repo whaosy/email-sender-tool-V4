@@ -22,7 +22,7 @@ interface TabItem {
 function EmailSenderContent() {
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<TabType>('upload');
-  const { state, setUploadedFile, setSelectedTemplate, setSelectedSmtpConfig } = useEmailSettlement();
+  const { state, setUploadedFile, setSelectedTemplate, setSelectedSmtpConfig, setSettlementType } = useEmailSettlement();
 
   const handleBackToHome = () => {
     navigate('/');
@@ -36,6 +36,8 @@ function EmailSenderContent() {
       icon: <FileUp className="h-4 w-4" />,
       component: (
         <FileUploadSection
+          settlementType={state.settlementType}
+          onSettlementTypeChange={setSettlementType}
           onFileUpload={(fileData) => {
             // fileData is { dataFile, mappingFile }
             setUploadedFile(fileData);
@@ -65,6 +67,7 @@ function EmailSenderContent() {
           mappingFile={state.uploadedFile?.mappingFile}
           selectedTemplate={state.selectedTemplate}
           selectedSmtpConfig={state.selectedSmtpConfig}
+          settlementType={state.settlementType}
         />
       ),
     },

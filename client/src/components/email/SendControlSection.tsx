@@ -13,6 +13,7 @@ interface SendControlSectionProps {
   selectedTemplate: any;
   selectedSmtpConfig: any;
   mappingFile?: any;
+  settlementType?: 'bySheet' | 'byRow';
 }
 
 interface SendResult {
@@ -28,6 +29,7 @@ export default function SendControlSection({
   selectedTemplate,
   selectedSmtpConfig,
   mappingFile,
+  settlementType = 'bySheet',
 }: SendControlSectionProps) {
   const [sendType, setSendType] = useState<'immediate' | 'scheduled'>('immediate');
   const [scheduledTime, setScheduledTime] = useState('');
@@ -78,6 +80,7 @@ export default function SendControlSection({
         mappingFileKey: mappingFile?.fileKey,
         merchantColumn: '商户名称',
         emailColumn: '收件人邮箱',
+        settlementType: settlementType,
       });
       console.log('预覧结果:', result);
 
@@ -121,6 +124,7 @@ export default function SendControlSection({
             smtpConfigId: selectedSmtpConfig.id,
             dataFileKey: uploadedFile.fileKey,
             mappingFileKey: mappingFile?.fileKey,
+            settlementType: settlementType,
           },
           {
             onSuccess: (data: any) => {
