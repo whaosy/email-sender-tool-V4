@@ -6,6 +6,7 @@ interface EmailSettlementState {
   selectedSmtpConfig: any;
   mappingFile?: any;
   settlementType: 'bySheet' | 'byRow';
+  dataClassificationColumn: string; // 数据分类列名
 }
 
 interface EmailSettlementContextType {
@@ -15,6 +16,7 @@ interface EmailSettlementContextType {
   setSelectedSmtpConfig: (config: any) => void;
   setMappingFile: (file: any) => void;
   setSettlementType: (type: 'bySheet' | 'byRow') => void;
+  setDataClassificationColumn: (column: string) => void;
   reset: () => void;
 }
 
@@ -27,6 +29,7 @@ export function EmailSettlementProvider({ children }: { children: ReactNode }) {
     selectedSmtpConfig: null,
     mappingFile: undefined,
     settlementType: 'bySheet',
+    dataClassificationColumn: '商户名称',
   });
 
   const setUploadedFile = (file: any) => {
@@ -49,6 +52,10 @@ export function EmailSettlementProvider({ children }: { children: ReactNode }) {
     setState((prev) => ({ ...prev, settlementType: type }));
   };
 
+  const setDataClassificationColumn = (column: string) => {
+    setState((prev) => ({ ...prev, dataClassificationColumn: column }));
+  };
+
   const reset = () => {
     setState({
       uploadedFile: null,
@@ -56,6 +63,7 @@ export function EmailSettlementProvider({ children }: { children: ReactNode }) {
       selectedSmtpConfig: null,
       mappingFile: undefined,
       settlementType: 'bySheet',
+      dataClassificationColumn: '商户名称',
     });
   };
 
@@ -68,6 +76,7 @@ export function EmailSettlementProvider({ children }: { children: ReactNode }) {
         setSelectedSmtpConfig,
         setMappingFile,
         setSettlementType,
+        setDataClassificationColumn,
         reset,
       }}
     >

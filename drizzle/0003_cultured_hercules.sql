@@ -1,0 +1,1 @@
+ALTER TABLE `emailTasks` ADD `dataClassificationColumn` varchar(255);

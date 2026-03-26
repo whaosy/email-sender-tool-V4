@@ -289,7 +289,7 @@ export function groupDataByMerchant(
 
 /**
  * Generate email data for row-based settlement
- * For each merchant, includes header row + data rows
+ * For each merchant, includes only data rows (no header row)
  */
 export function generateRowBasedEmailData(
   data: any[],
@@ -297,19 +297,11 @@ export function generateRowBasedEmailData(
 ): Record<string, any[]> {
   if (data.length === 0) return {};
   
-  // Get header row (first row)
-  const headerRow = data[0];
-  
   // Group data by merchant
   const groups = groupDataByMerchant(data, merchantColumn);
   
-  // For each merchant, prepend header row
-  const result: Record<string, any[]> = {};
-  for (const [merchantName, rows] of Object.entries(groups)) {
-    result[merchantName] = [headerRow, ...rows];
-  }
-  
-  return result;
+  // Return grouped data without prepending header row
+  return groups;
 }
 
 /**

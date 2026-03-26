@@ -509,6 +509,7 @@ export const emailRouter = router({
         merchantColumn: z.string().default('商户名称'),
         emailColumn: z.string().default('收件人邮箱'),
         settlementType: z.enum(['bySheet', 'byRow']).default('bySheet'),
+        dataClassificationColumn: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -541,6 +542,7 @@ export const emailRouter = router({
           totalRecipients: 0,
           status: 'sending',
           settlementType: input.settlementType,
+          dataClassificationColumn: input.dataClassificationColumn || '商户名称',
           startTime: new Date(),
         });
 
@@ -638,13 +640,16 @@ export const emailRouter = router({
             throw new Error('First sheet is empty');
           }
           
-          // Sort data by merchant name
-          const sortedData = sortDataByMerchant(firstSheetData, input.merchantColumn);
+          // Use dataClassificationColumn if provided for row-based settlement
+          const classificationColumn = input.dataClassificationColumn || input.merchantColumn;
           
-          // Group data by merchant
-          const merchantGroups = generateRowBasedEmailData(sortedData, input.merchantColumn);
+          // Sort data by classification column
+          const sortedData = sortDataByMerchant(firstSheetData, classificationColumn);
           
-          for (const [merchantName, groupData] of Object.entries(merchantGroups)) {
+          // Group data by classification column
+          const merchantGroups = generateRowBasedEmailData(sortedData, classificationColumn);
+          
+          for (const [classificationValue, groupData] of Object.entries(merchantGroups)) {
             // Generate data detail HTML table
             const dataDetailHtml = arrayToHtmlTable(groupData);
             
@@ -656,20 +661,20 @@ export const emailRouter = router({
               template.body,
               dataDetailHtml,
               settlementAmount,
-              merchantName
+              classificationValue
             );
             
             // Replace all placeholders in subject
             let subject = template.subject;
-            subject = subject.replace(/{merchantName}/g, merchantName);
-            subject = subject.replace(/{{merchantName}}/g, merchantName);
+            subject = subject.replace(/{merchantName}/g, classificationValue);
+            subject = subject.replace(/{{merchantName}}/g, classificationValue);
             subject = subject.replace(/{settlementAmount}/g, settlementAmount.toFixed(2));
             subject = subject.replace(/{{settlementAmount}}/g, settlementAmount.toFixed(2));
             const currentDate = new Date().toLocaleDateString('zh-CN');
             subject = subject.replace(/{currentDate}/g, currentDate);
             subject = subject.replace(/{{currentDate}}/g, currentDate);
             
-            const emails = merchantEmailMapping[merchantName] || ['test@example.com'];
+            const emails = merchantEmailMapping[classificationValue] || ['test@example.com'];
             for (const email of emails) {
               emailsToSend.push({
                 to: email,

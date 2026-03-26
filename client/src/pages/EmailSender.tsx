@@ -68,6 +68,7 @@ function EmailSenderContent() {
           selectedTemplate={state.selectedTemplate}
           selectedSmtpConfig={state.selectedSmtpConfig}
           settlementType={state.settlementType}
+          dataClassificationColumn={state.dataClassificationColumn}
         />
       ),
     },

@@ -14,6 +14,7 @@ interface SendControlSectionProps {
   selectedSmtpConfig: any;
   mappingFile?: any;
   settlementType?: 'bySheet' | 'byRow';
+  dataClassificationColumn?: string;
 }
 
 interface SendResult {
@@ -30,6 +31,7 @@ export default function SendControlSection({
   selectedSmtpConfig,
   mappingFile,
   settlementType = 'bySheet',
+  dataClassificationColumn = '商户名称',
 }: SendControlSectionProps) {
   const [sendType, setSendType] = useState<'immediate' | 'scheduled'>('immediate');
   const [scheduledTime, setScheduledTime] = useState('');
@@ -39,6 +41,7 @@ export default function SendControlSection({
   const [previewEmails, setPreviewEmails] = useState<any[]>([]);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const [sendProgress, setSendProgress] = useState(0);
 
   const sendMutation = trpc.email.sendEmails.useMutation();
   const scheduleMutation = trpc.email.scheduleEmails.useMutation();
@@ -81,6 +84,7 @@ export default function SendControlSection({
         merchantColumn: '商户名称',
         emailColumn: '收件人邮箱',
         settlementType: settlementType,
+        dataClassificationColumn: dataClassificationColumn,
       });
       console.log('预覧结果:', result);
 
@@ -116,8 +120,21 @@ export default function SendControlSection({
     }
 
     setIsSending(true);
+    setSendProgress(0);
+    
+    // Simulate progress updates
+    const progressInterval = setInterval(() => {
+      setSendProgress((prev) => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return prev;
+        }
+        return prev + Math.random() * 20;
+      });
+    }, 500);
     try {
       const result = await new Promise<SendResult>((resolve, reject) => {
+        const startTime = Date.now();
         sendMutation.mutate(
           {
             templateId: selectedTemplate.id,
@@ -125,13 +142,15 @@ export default function SendControlSection({
             dataFileKey: uploadedFile.fileKey,
             mappingFileKey: mappingFile?.fileKey,
             settlementType: settlementType,
+            dataClassificationColumn: dataClassificationColumn,
           },
           {
             onSuccess: (data: any) => {
+              setSendProgress(100);
               resolve({
                 success: true,
                 taskId: data.taskId,
-                message: `邮件发送成功，共发送 ${data.sentCount || 0} 封邮件`,
+                message: `邮件已发送，共 ${data.sentCount || 0} 封，失败 ${data.failedCount || 0} 封`,
                 sentCount: data.sentCount,
                 failedCount: data.failedCount,
               });
@@ -161,6 +180,7 @@ export default function SendControlSection({
       toast.error(error.message || '邮件发送失败');
     } finally {
       setIsSending(false);
+      setSendProgress(0);
     }
   };
 
@@ -342,23 +362,38 @@ export default function SendControlSection({
                     </>
                   )}
                 </Button>
-                <Button
-                  onClick={handleSendImmediately}
-                  disabled={!canSend || isSending}
-                  className="w-full h-12 text-lg"
-                >
-                  {isSending ? (
-                    <>
-                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                      发送中...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-5 w-5 mr-2" />
-                      立即发送邮件
-                    </>
+                <div className="space-y-2">
+                  <Button
+                    onClick={handleSendImmediately}
+                    disabled={!canSend || isSending}
+                    className="w-full h-12 text-lg"
+                  >
+                    {isSending ? (
+                      <>
+                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                        发送中...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-5 w-5 mr-2" />
+                        立即发送邮件
+                      </>
+                    )}
+                  </Button>
+                  {isSending && (
+                    <div className="space-y-2">
+                      <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                        <div
+                          className="bg-blue-500 h-full transition-all duration-300"
+                          style={{ width: `${sendProgress}%` }}
+                        />
+                      </div>
+                      <p className="text-sm text-slate-600 text-center">
+                        发送进度: {sendProgress}%
+                      </p>
+                    </div>
                   )}
-                </Button>
+                </div>
               </div>
             )}
 

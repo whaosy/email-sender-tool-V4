@@ -42,6 +42,7 @@ export const emailTasks = mysqlTable("emailTasks", {
   status: mysqlEnum("status", ["draft", "scheduled", "sending", "completed", "failed"]).default("draft"),
   sendType: mysqlEnum("sendType", ["immediate", "scheduled"]).default("immediate"),
   settlementType: mysqlEnum("settlementType", ["bySheet", "byRow"]).default("bySheet").notNull(),
+  dataClassificationColumn: varchar("dataClassificationColumn", { length: 255 }), // 用于按表格记录行结算时的分类列名
   scheduledTime: timestamp("scheduledTime"),
   startTime: timestamp("startTime"),
   endTime: timestamp("endTime"),

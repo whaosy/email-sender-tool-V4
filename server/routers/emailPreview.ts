@@ -19,6 +19,7 @@ export const emailPreviewRouter = router({
         merchantColumn: z.string().default('商户名称'),
         emailColumn: z.string().default('收件人邮箱'),
         settlementType: z.enum(['bySheet', 'byRow']).default('bySheet'),
+        dataClassificationColumn: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -94,28 +95,31 @@ export const emailPreviewRouter = router({
           const firstSheetName = dataFileParsed.sheetNames[0];
           const firstSheetData = dataFileParsed.sheets[firstSheetName] || [];
           
-          // Sort data by merchant name
-          const sortedData = sortDataByMerchant(firstSheetData, input.merchantColumn);
+          // Use dataClassificationColumn if provided
+          const classificationColumn = input.dataClassificationColumn || input.merchantColumn;
           
-          // Group data by merchant and generate previews
+          // Sort data by classification column
+          const sortedData = sortDataByMerchant(firstSheetData, classificationColumn);
+          
+          // Group data by classification column and generate previews
           previews = [];
-          const merchantGroups = generateRowBasedEmailData(sortedData, input.merchantColumn);
+          const merchantGroups = generateRowBasedEmailData(sortedData, classificationColumn);
           
-          for (const [merchantName, groupData] of Object.entries(merchantGroups)) {
+          for (const [classificationValue, groupData] of Object.entries(merchantGroups)) {
             const dataDetailHtml = arrayToHtmlTable(groupData);
             const settlementAmount = calculateColumnSum(groupData, '金额');
             const emailContent = generateEmailContent(
               template.body,
               dataDetailHtml,
               settlementAmount,
-              merchantName
+              classificationValue
             );
             
-            const emails = merchantEmailMapping?.[merchantName] || ['test@example.com'];
+            const emails = merchantEmailMapping?.[classificationValue] || ['test@example.com'];
             for (const email of emails) {
               let replacedSubject = template.subject
-                .replace(/{merchantName}/g, merchantName)
-                .replace(/{{merchantName}}/g, merchantName)
+                .replace(/{merchantName}/g, classificationValue)
+                .replace(/{{merchantName}}/g, classificationValue)
                 .replace(/{settlementAmount}/g, settlementAmount.toFixed(2))
                 .replace(/{{settlementAmount}}/g, settlementAmount.toFixed(2))
                 .replace(/{currentDate}/g, new Date().toLocaleDateString('zh-CN'))
@@ -125,7 +129,7 @@ export const emailPreviewRouter = router({
                 to: email,
                 subject: replacedSubject,
                 html: emailContent,
-                merchantName: merchantName,
+                merchantName: classificationValue,
               });
             }
           }

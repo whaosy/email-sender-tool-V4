@@ -7,6 +7,7 @@ import { Upload, AlertCircle, CheckCircle2, File, Trash2, Eye } from 'lucide-rea
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 import DataPreviewDialog from './DataPreviewDialog';
+import { useEmailSettlement } from '@/contexts/EmailSettlementContext';
 
 interface FileUploadSectionProps {
   onFileUpload: (file: any) => void;
@@ -25,12 +26,13 @@ interface UploadedFileData {
 }
 
 export default function FileUploadSection({ onFileUpload, settlementType = 'bySheet', onSettlementTypeChange }: FileUploadSectionProps) {
+  const { state, setDataClassificationColumn } = useEmailSettlement();
   const [isDragging, setIsDragging] = useState<'data' | 'mapping' | null>(null);
   const [dataFile, setDataFile] = useState<UploadedFileData | null>(null);
   const [mappingFile, setMappingFile] = useState<UploadedFileData | null>(null);
   const [localSettlementType, setLocalSettlementType] = useState<'bySheet' | 'byRow'>(settlementType);
   const [mappingConfig, setMappingConfig] = useState<{ merchantColumn: string; emailColumn: string }>({
-    merchantColumn: '商户名称',
+    merchantColumn: state.dataClassificationColumn,
     emailColumn: '收件人邮箱',
   });
   const [showMappingPreview, setShowMappingPreview] = useState(false);
@@ -195,9 +197,35 @@ export default function FileUploadSection({ onFileUpload, settlementType = 'bySh
           <p className="text-xs text-slate-500">
             {localSettlementType === 'bySheet'
               ? '每个Sheet表为一个商户的结算数据'
-              : '根据商户名称列进行结算，相同商户的数据会连续出现'}
+              : '根据指定的分类列进行结算，相同分类值的数据会连续出现'}
           </p>
         </div>
+
+        {/* Data Classification Column - Only show when byRow is selected */}
+        {localSettlementType === 'byRow' && (
+          <div className="space-y-2 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <label className="text-sm font-medium text-slate-700">
+              数据分类列名 <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="例如：商户名称、客戶ID、部门名称"
+              value={mappingConfig.merchantColumn}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                setMappingConfig({
+                  ...mappingConfig,
+                  merchantColumn: newValue,
+                });
+                setDataClassificationColumn(newValue);
+              }}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <p className="text-xs text-slate-600">
+              输入Excel表格中用于区分不同商户/分类的列名。系统将按此列的值对数据进行分组。
+            </p>
+          </div>
+        )}
 
         {/* Data File Upload */}
         <div className="space-y-2">
