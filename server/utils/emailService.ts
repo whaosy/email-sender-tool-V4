@@ -32,7 +32,8 @@ export async function createSmtpTransporter(config: {
     const secure = config.encryptionType === 'ssl';
     const requireTLS = config.encryptionType === 'tls';
     
-    const transporter = nodemailer.createTransport({
+    // Build transporter config
+    const transporterConfig: any = {
       host: config.host,
       port: config.port,
       secure,
@@ -43,7 +44,17 @@ export async function createSmtpTransporter(config: {
       },
       connectionTimeout: 10000,
       socketTimeout: 10000,
-    });
+    };
+    
+    // For SSL/TLS connections, add TLS options to handle certificate issues
+    if (config.encryptionType === 'ssl' || config.encryptionType === 'tls') {
+      transporterConfig.tls = {
+        rejectUnauthorized: false,
+        minVersion: 'TLSv1.2',
+      };
+    }
+    
+    const transporter = nodemailer.createTransport(transporterConfig);
     
     return transporter;
   } catch (error) {
@@ -63,71 +74,54 @@ export async function testSmtpConnection(config: {
 }): Promise<{ success: boolean; message: string }> {
   try {
     const transporter = await createSmtpTransporter(config);
-    await transporter.verify();
+    
+    // Try to verify connection with timeout
+    const verifyPromise = transporter.verify();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Connection timeout after 15 seconds')), 15000)
+    );
+    
+    await Promise.race([verifyPromise, timeoutPromise]);
+    
     return {
       success: true,
       message: 'SMTP connection successful',
     };
   } catch (error) {
+    let errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Provide more helpful error messages
+    if (errorMessage.includes('wrong version number') || errorMessage.includes('SSL')) {
+      errorMessage = `SSL/TLS connection failed. Please check: 1) Port number (SSL usually 465, TLS usually 587); 2) Encryption type matches server configuration; 3) Server supports the encryption method`;
+    } else if (errorMessage.includes('ECONNREFUSED')) {
+      errorMessage = `Connection refused: Please verify host address and port number`;
+    } else if (errorMessage.includes('ETIMEDOUT') || errorMessage.includes('timeout')) {
+      errorMessage = `Connection timeout: Please check network and server address`;
+    } else if (errorMessage.includes('Invalid login') || errorMessage.includes('invalid credentials')) {
+      errorMessage = `Authentication failed: Email or authorization code is incorrect`;
+    }
+    
     return {
       success: false,
-      message: error instanceof Error ? error.message : 'Unknown error',
+      message: errorMessage,
     };
   }
 }
 
 /**
- * Send email
+ * Send single email
  */
 export async function sendEmail(
-  transporter: ReturnType<typeof nodemailer.createTransport>,
-  options: {
-    from: string;
-    to: string | string[];
+  transporter: nodemailer.Transporter<any>,
+  mailOptions: {
+    to: string;
     subject: string;
     html: string;
+    from?: string;
   }
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
-    // Add CSS styles to HTML for proper rendering in email clients
-    const emailHtml = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          h1 { font-size: 32px; margin: 20px 0 10px 0; font-weight: bold; }
-          h2 { font-size: 24px; margin: 16px 0 8px 0; font-weight: bold; border-bottom: 2px solid #ddd; padding-bottom: 8px; }
-          h3 { font-size: 20px; margin: 12px 0 6px 0; font-weight: bold; }
-          h4 { font-size: 18px; margin: 10px 0 5px 0; font-weight: bold; }
-          h5 { font-size: 16px; margin: 8px 0 4px 0; font-weight: bold; }
-          h6 { font-size: 14px; margin: 6px 0 3px 0; font-weight: bold; }
-          ul, ol { margin: 10px 0; padding-left: 20px; }
-          li { margin: 5px 0; }
-          a { color: #0066cc; text-decoration: none; }
-          a:hover { text-decoration: underline; }
-          code { background-color: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-family: 'Courier New', monospace; font-size: 14px; }
-          pre { background-color: #f5f5f5; padding: 12px; border-radius: 4px; overflow-x: auto; border: 1px solid #ddd; }
-          pre code { background-color: transparent; padding: 0; }
-          table { border-collapse: collapse; width: 100%; margin: 10px 0; }
-          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-          th { background-color: #f5f5f5; font-weight: bold; }
-        </style>
-      </head>
-      <body>
-        ${options.html}
-      </body>
-      </html>
-    `;
-    
-    const info = await transporter.sendMail({
-      from: options.from,
-      to: Array.isArray(options.to) ? options.to.join(',') : options.to,
-      subject: options.subject,
-      html: emailHtml,
-    });
-    
+    const info = await transporter.sendMail(mailOptions);
     return {
       success: true,
       messageId: info.messageId,
@@ -141,76 +135,25 @@ export async function sendEmail(
 }
 
 /**
- * Batch send emails with retry logic
+ * Batch send emails - returns array of results for each email
  */
 export async function batchSendEmails(
-  transporter: ReturnType<typeof nodemailer.createTransport>,
+  transporter: nodemailer.Transporter<any>,
   emails: Array<{
     to: string;
     subject: string;
     html: string;
+    from?: string;
   }>,
-  options: {
-    from: string;
-    onProgress?: (current: number, total: number) => void;
-    maxRetries?: number;
-  }
-): Promise<
-  Array<{
-    email: string;
-    success: boolean;
-    messageId?: string;
-    error?: string;
-  }>
-> {
-  const maxRetries = options.maxRetries || 3;
-  const results = [];
-  
+  onProgress?: (current: number, total: number) => void
+): Promise<Array<{ success: boolean; messageId?: string; error?: string }>> {
+  const results: Array<{ success: boolean; messageId?: string; error?: string }> = [];
+
   for (let i = 0; i < emails.length; i++) {
-    const email = emails[i];
-    let lastError: string | undefined;
-    let success = false;
-    let messageId: string | undefined;
-    
-    // Retry logic
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      try {
-        const result = await sendEmail(transporter, {
-          from: options.from,
-          to: email.to,
-          subject: email.subject,
-          html: email.html,
-        });
-        
-        if (result.success) {
-          success = true;
-          messageId = result.messageId;
-          break;
-        } else {
-          lastError = result.error;
-        }
-      } catch (error) {
-        lastError = error instanceof Error ? error.message : 'Unknown error';
-      }
-      
-      // Wait before retry (exponential backoff)
-      if (attempt < maxRetries - 1) {
-        await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 1000));
-      }
-    }
-    
-    results.push({
-      email: email.to,
-      success,
-      messageId,
-      error: lastError,
-    });
-    
-    // Call progress callback
-    if (options.onProgress) {
-      options.onProgress(i + 1, emails.length);
-    }
+    const result = await sendEmail(transporter, emails[i]);
+    results.push(result);
+    onProgress?.(i + 1, emails.length);
   }
-  
+
   return results;
 }

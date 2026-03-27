@@ -160,17 +160,17 @@ export const emailHistoryRouter = router({
           html: template.body,
         }));
 
-        // Send emails
-        const results = await batchSendEmails(transporter, emailsToSend, {
-          from: `${smtpConfig.senderName || 'System'} <${smtpConfig.senderEmail}>`,
-          maxRetries: 3,
+        // Send emails with progress callback
+        const results = await batchSendEmails(transporter, emailsToSend, (current, total) => {
+          console.log(`Sending emails: ${current}/${total}`);
         });
 
-        // Update logs
+        // Update logs based on results
         let successCount = 0;
         let failureCount = 0;
 
-        for (let i = 0; i < logsToRetry.length; i++) {
+        // Update logs for each email
+        for (let i = 0; i < results.length; i++) {
           const result = results[i];
           const log = logsToRetry[i];
 
