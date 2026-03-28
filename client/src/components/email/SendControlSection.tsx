@@ -42,6 +42,7 @@ export default function SendControlSection({
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [sendProgress, setSendProgress] = useState(0);
+  const [hasSuccessfullySent, setHasSuccessfullySent] = useState(false);
 
   const sendMutation = trpc.email.sendEmails.useMutation();
   const scheduleMutation = trpc.email.scheduleEmails.useMutation();
@@ -169,6 +170,8 @@ export default function SendControlSection({
       setSendResult(result);
       if (result.success) {
         toast.success(result.message);
+        // 标记已成功发送，禁用后续发送
+        setHasSuccessfullySent(true);
       } else {
         toast.error(result.message);
       }
@@ -314,6 +317,11 @@ export default function SendControlSection({
                       成功: {sendResult.sentCount} 封, 失败: {sendResult.failedCount || 0} 封
                     </p>
                   )}
+                  {sendResult.success && hasSuccessfullySent && (
+                    <p className="text-sm mt-2 text-green-700 font-medium">
+                      ✓ 已禁用重复发送。如需重新发送，请重新进入邮件发送系统。
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -346,7 +354,7 @@ export default function SendControlSection({
               <div className="space-y-3">
                 <Button
                   onClick={handleGeneratePreview}
-                  disabled={!canSend || isSending || isLoadingPreview}
+                  disabled={!canSend || isSending || isLoadingPreview || hasSuccessfullySent}
                   variant="outline"
                   className="w-full h-12 text-lg"
                 >
@@ -365,7 +373,7 @@ export default function SendControlSection({
                 <div className="space-y-2">
                   <Button
                     onClick={handleSendImmediately}
-                    disabled={!canSend || isSending}
+                    disabled={!canSend || isSending || hasSuccessfullySent}
                     className="w-full h-12 text-lg"
                   >
                     {isSending ? (
