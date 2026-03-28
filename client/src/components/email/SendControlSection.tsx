@@ -42,10 +42,12 @@ export default function SendControlSection({
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [sendProgress, setSendProgress] = useState(0);
+  const [hasSuccessfullySent, setHasSuccessfullySent] = useState(false);
 
   const sendMutation = trpc.email.sendEmails.useMutation();
   const scheduleMutation = trpc.email.scheduleEmails.useMutation();
   const previewMutation = trpc.emailPreview.generatePreviews.useMutation();
+  const downloadPreviewMutation = trpc.emailPreview.downloadPreviewEmails.useMutation();
 
   // uploadedFile is now the dataFile object with { fileKey, sheetNames, mappingData }
   const canSend = uploadedFile && uploadedFile.fileKey && uploadedFile.fileKey.length > 0 && selectedTemplate?.id && selectedSmtpConfig?.id;
@@ -169,6 +171,8 @@ export default function SendControlSection({
       setSendResult(result);
       if (result.success) {
         toast.success(result.message);
+        // 标记已成功发送，禁用后续发送
+        setHasSuccessfullySent(true);
       } else {
         toast.error(result.message);
       }
@@ -252,6 +256,62 @@ export default function SendControlSection({
     setShowPreviewDialog(false);
   };
 
+  const handleDownloadPreviewEmails = async () => {
+    if (!canSend) {
+      toast.error('请完成所有配置步骤');
+      return;
+    }
+
+    if (!uploadedFile?.fileKey) {
+      toast.error('数据文件未正常上传');
+      return;
+    }
+
+    if (!selectedTemplate?.id) {
+      toast.error('邮件模板未选择');
+      return;
+    }
+
+    setIsLoadingPreview(true);
+    try {
+      const now = new Date();
+      const sendTime = now.toLocaleString('zh-CN');
+
+      const result = await downloadPreviewMutation.mutateAsync({
+        templateId: selectedTemplate?.id,
+        dataFileKey: uploadedFile?.fileKey,
+        mappingFileKey: mappingFile?.fileKey,
+        merchantColumn: '商户名称',
+        emailColumn: '收件人邮箱',
+        settlementType: settlementType,
+        dataClassificationColumn: dataClassificationColumn,
+        sendTime: sendTime,
+        sendType: 'immediate',
+      });
+
+      if (result?.htmlContent) {
+        const blob = new Blob([result.htmlContent], { type: 'text/html;charset=utf-8' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', result.fileName || `preview-emails-${new Date().toISOString().split('T')[0]}.html`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast.success('预览邮件已下载');
+      } else {
+        toast.error('下载失败，未获得有效的 HTML 内容');
+      }
+    } catch (error: any) {
+      console.error('Download preview error:', error);
+      toast.error(error.message || '下载预览邮件失败');
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  };
+
   return (
     <>
       <Card>
@@ -314,6 +374,11 @@ export default function SendControlSection({
                       成功: {sendResult.sentCount} 封, 失败: {sendResult.failedCount || 0} 封
                     </p>
                   )}
+                  {sendResult.success && hasSuccessfullySent && (
+                    <p className="text-sm mt-2 text-green-700 font-medium">
+                      ✓ 已禁用重复发送。如需重新发送，请重新进入邮件发送系统。
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -346,7 +411,7 @@ export default function SendControlSection({
               <div className="space-y-3">
                 <Button
                   onClick={handleGeneratePreview}
-                  disabled={!canSend || isSending || isLoadingPreview}
+                  disabled={!canSend || isSending || isLoadingPreview || hasSuccessfullySent}
                   variant="outline"
                   className="w-full h-12 text-lg"
                 >
@@ -362,10 +427,27 @@ export default function SendControlSection({
                     </>
                   )}
                 </Button>
+                <Button
+                  onClick={handleDownloadPreviewEmails}
+                  disabled={!canSend || isSending || isLoadingPreview || hasSuccessfullySent}
+                  variant="outline"
+                  className="w-full h-12 text-lg"
+                >
+                  {isLoadingPreview ? (
+                    <>
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                      下载中...
+                    </>
+                  ) : (
+                    <>
+                      📥 下载全部预览邮件
+                    </>
+                  )}
+                </Button>
                 <div className="space-y-2">
                   <Button
                     onClick={handleSendImmediately}
-                    disabled={!canSend || isSending}
+                    disabled={!canSend || isSending || hasSuccessfullySent}
                     className="w-full h-12 text-lg"
                   >
                     {isSending ? (
