@@ -99,6 +99,7 @@ export async function testSmtpConnection(config: {
 
 /**
  * Validate email address format
+ * Supports both plain email (email@domain.com) and named format (Name <email@domain.com>)
  */
 export function validateEmailAddress(email: string): { valid: boolean; error?: string } {
   if (!email || typeof email !== 'string') {
@@ -113,22 +114,32 @@ export function validateEmailAddress(email: string): { valid: boolean; error?: s
     return { valid: false, error: 'Email address cannot be empty' };
   }
 
+  // Extract actual email address from formats like "Name <email@domain.com>"
+  let actualEmail = trimmedEmail;
+  const namedFormatRegex = /^(.+?)\s*<(.+?)>$/;
+  const namedFormatMatch = trimmedEmail.match(namedFormatRegex);
+  
+  if (namedFormatMatch) {
+    // Format: "Name <email@domain.com>"
+    actualEmail = namedFormatMatch[2].trim();
+  }
+
   // Basic email validation regex (RFC 5322 simplified)
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(trimmedEmail)) {
+  if (!emailRegex.test(actualEmail)) {
     return { valid: false, error: `Invalid email format: ${trimmedEmail}` };
   }
 
   // Check for common issues
-  if (trimmedEmail.includes('  ')) {
+  if (actualEmail.includes('  ')) {
     return { valid: false, error: 'Email address contains multiple spaces' };
   }
 
-  if (trimmedEmail.startsWith('@') || trimmedEmail.endsWith('@')) {
+  if (actualEmail.startsWith('@') || actualEmail.endsWith('@')) {
     return { valid: false, error: 'Email address cannot start or end with @' };
   }
 
-  if (trimmedEmail.includes('@@')) {
+  if (actualEmail.includes('@@')) {
     return { valid: false, error: 'Email address contains double @' };
   }
 
