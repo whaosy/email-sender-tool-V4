@@ -50,8 +50,7 @@ export async function createSmtpTransporter(config: {
     if (config.encryptionType === 'ssl' || config.encryptionType === 'tls') {
       transporterConfig.tls = {
         rejectUnauthorized: false,
-        // Remove minVersion restriction to support more SMTP servers
-        // Some servers like QQ mail may have compatibility issues with strict TLS versions
+        minVersion: 'TLSv1.2',
       };
     }
     
@@ -212,7 +211,6 @@ export async function sendEmail(
     // Validate email parameters before sending
     const validation = validateEmailParameters(mailOptions);
     if (!validation.valid) {
-      console.error(`[Email Validation Failed] To: ${mailOptions.to}, Error: ${validation.error}`);
       return {
         success: false,
         error: `Email validation failed: ${validation.error}`,
@@ -226,38 +224,20 @@ export async function sendEmail(
       from: mailOptions.from?.trim(),
     };
 
-    console.log(`[Sending Email] To: ${cleanMailOptions.to}, Subject: ${cleanMailOptions.subject.substring(0, 50)}...`);
-    
     const info = await transporter.sendMail(cleanMailOptions);
-    console.log(`[Email Sent Successfully] To: ${cleanMailOptions.to}, MessageId: ${info.messageId}`);
-    
     return {
       success: true,
       messageId: info.messageId,
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const errorCode = (error as any)?.code || 'UNKNOWN';
-    
-    console.error(`[Email Send Failed] To: ${mailOptions.to}`);
-    console.error(`[Error Code] ${errorCode}`);
-    console.error(`[Error Message] ${errorMessage}`);
     
     // Provide more helpful error messages for common SMTP errors
     let friendlyError = errorMessage;
-    
-    if (errorMessage.includes('502') || errorCode === '502') {
-      friendlyError = `SMTP server error (502): Invalid parameters. Please verify: 1) Recipient email format is correct; 2) Email subject is not empty (max 500 chars); 3) Email content is not empty; 4) SMTP configuration is correct`;
+    if (errorMessage.includes('502')) {
+      friendlyError = `SMTP server error (502): Invalid parameters. Please check email format and content.`;
     } else if (errorMessage.includes('Invalid parameters')) {
       friendlyError = `Invalid email parameters. Please verify recipient email, subject, and content.`;
-    } else if (errorMessage.includes('ENOTFOUND') || errorMessage.includes('getaddrinfo')) {
-      friendlyError = `SMTP server not found. Please check the SMTP host address.`;
-    } else if (errorMessage.includes('ECONNREFUSED')) {
-      friendlyError = `Connection refused. Please check SMTP host and port.`;
-    } else if (errorMessage.includes('ETIMEDOUT')) {
-      friendlyError = `Connection timeout. Please check network and SMTP server.`;
-    } else if (errorMessage.includes('Authentication failed') || errorMessage.includes('Invalid login')) {
-      friendlyError = `SMTP authentication failed. Please check email and authorization code.`;
     }
     
     return {
@@ -369,90 +349,98 @@ export function generatePreviewEmailsHtml(
       max-width: 900px;
       margin: 0 auto;
       padding: 20px;
+      background-color: #fff;
     }
     
     .header {
-      background-color: #fff;
-      padding: 20px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      border-bottom: 3px solid #2563eb;
+      padding-bottom: 20px;
+      margin-bottom: 30px;
     }
     
     .header h1 {
-      margin-bottom: 15px;
-      color: #222;
+      color: #2563eb;
+      font-size: 28px;
+      margin-bottom: 10px;
     }
     
     .summary {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 15px;
-      margin-bottom: 20px;
+      background-color: #f0f9ff;
+      border-left: 4px solid #2563eb;
+      padding: 20px;
+      margin-bottom: 30px;
+      border-radius: 4px;
     }
     
     .summary-item {
-      background-color: #f5f5f5;
-      padding: 15px;
-      border-radius: 4px;
-      border-left: 4px solid #1890ff;
+      margin: 10px 0;
+      font-size: 16px;
     }
     
     .summary-item strong {
-      display: block;
-      color: #666;
-      font-size: 12px;
-      margin-bottom: 5px;
-    }
-    
-    .summary-item span {
-      display: block;
-      font-size: 24px;
-      font-weight: bold;
-      color: #222;
+      color: #2563eb;
+      min-width: 120px;
+      display: inline-block;
     }
     
     .merchant-table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 15px;
-      background-color: #fff;
+      margin-bottom: 30px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    
+    .merchant-table thead {
+      background-color: #f0f9ff;
+      border-bottom: 2px solid #2563eb;
     }
     
     .merchant-table th {
-      background-color: #f5f5f5;
-      padding: 10px;
+      padding: 12px;
       text-align: left;
       font-weight: 600;
-      border-bottom: 2px solid #ddd;
+      color: #2563eb;
     }
     
     .merchant-table td {
-      padding: 8px;
-      border-bottom: 1px solid #ddd;
+      padding: 10px 12px;
     }
     
     .emails-section {
-      margin-top: 30px;
+      margin-top: 40px;
     }
     
-    .email-item {
-      background-color: #fff;
-      margin-bottom: 30px;
+    .emails-section h2 {
+      color: #333;
+      font-size: 20px;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .email-preview {
+      page-break-inside: avoid;
+      margin-bottom: 40px;
+      border: 1px solid #ddd;
+      padding: 20px;
       border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      background-color: #fafafa;
     }
     
     .email-header {
       background-color: #f5f5f5;
       padding: 15px;
-      border-bottom: 1px solid #ddd;
+      margin-bottom: 20px;
+      border-radius: 4px;
+      border-left: 4px solid #2563eb;
     }
     
     .email-header h3 {
-      margin-bottom: 10px;
-      color: #222;
+      margin: 0 0 10px 0;
+      color: #333;
+      font-size: 16px;
     }
     
     .email-header p {
@@ -461,28 +449,59 @@ export function generatePreviewEmailsHtml(
       color: #666;
     }
     
-    .email-body {
-      padding: 20px;
-      background-color: #fff;
-    }
-    
-    .email-body h4 {
-      margin-bottom: 15px;
-      color: #333;
-      font-size: 14px;
+    .email-header strong {
+      color: #2563eb;
+      min-width: 80px;
+      display: inline-block;
     }
     
     .email-content {
+      background-color: #fff;
+      padding: 15px;
+      border: 1px solid #eee;
+      border-radius: 4px;
+    }
+    
+    .email-content h4 {
+      margin: 0 0 15px 0;
+      color: #666;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .email-body {
       color: #333;
-      line-height: 1.6;
-      word-wrap: break-word;
+      line-height: 1.8;
+      font-size: 14px;
+    }
+    
+    .divider {
+      border: none;
+      border-top: 2px dashed #ccc;
+      margin: 40px 0;
+    }
+    
+    .footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #ddd;
+      text-align: center;
+      color: #999;
+      font-size: 12px;
     }
     
     @media print {
       body {
         background-color: #fff;
       }
-      .email-item {
+      
+      .container {
+        max-width: 100%;
+        padding: 0;
+      }
+      
+      .email-preview {
         page-break-inside: avoid;
       }
     }
@@ -491,39 +510,45 @@ export function generatePreviewEmailsHtml(
 <body>
   <div class="container">
     <div class="header">
-      <h1>邮件发送预览</h1>
-      <div class="summary">
-        <div class="summary-item">
-          <strong>待发送邮件总数</strong>
-          <span>${options.totalCount}</span>
-        </div>
-        <div class="summary-item">
-          <strong>发送时间</strong>
-          <span>${options.sendTime}</span>
-        </div>
-        <div class="summary-item">
-          <strong>发送类型</strong>
-          <span>${options.sendType === 'immediate' ? '立即发送' : '预约发送'}</span>
-        </div>
-      </div>
-      
-      <h3>商户-收件人列表</h3>
-      <table class="merchant-table">
-        <thead>
-          <tr>
-            <th>商户名称</th>
-            <th>收件人邮箱</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${merchantListHtml}
-        </tbody>
-      </table>
+      <h1>📧 邮件预览</h1>
+      <p style="color: #666; margin: 5px 0;">批量邮件发送系统 - 预览所有待发送邮件</p>
     </div>
     
+    <div class="summary">
+      <div class="summary-item">
+        <strong>待发送邮件总数:</strong>
+        <span style="color: #2563eb; font-weight: 600; font-size: 18px;">${options.totalCount}</span>
+      </div>
+      <div class="summary-item">
+        <strong>发送时间:</strong>
+        <span>${options.sendTime}</span>
+      </div>
+      <div class="summary-item">
+        <strong>发送类型:</strong>
+        <span>${options.sendType === 'immediate' ? '立即发送' : '预约发送'}</span>
+      </div>
+    </div>
+    
+    <h2 style="font-size: 18px; color: #333; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #e5e7eb;">商户-收件人列表</h2>
+    <table class="merchant-table">
+      <thead>
+        <tr>
+          <th>商户名称</th>
+          <th>收件人邮箱</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${merchantListHtml}
+      </tbody>
+    </table>
+    
     <div class="emails-section">
-      <h2 style="margin-bottom: 20px;">邮件明细</h2>
+      <h2>邮件明细</h2>
       ${emailsHtml}
+    </div>
+    
+    <div class="footer">
+      <p>此文档由批量邮件发送系统生成，生成时间: ${new Date().toLocaleString('zh-CN')}</p>
     </div>
   </div>
 </body>

@@ -121,6 +121,3 @@
 ## 第十五轮 Bug 修复和功能扩展
 - [x] Bug #25: 邮件发送失败 - "Mail command failed: 502 Invalid paramenters" 错误 - 已修复（添加邮件参数验证）
 - [x] Feature #15: 下载全部预览邮件 - 生成包含汇总信息和邮件明细的 HTML 页面 - 已完成
-
-## 第十六轮 Bug 修复（邮件发送 502 错误 - TLS 配置问题）
-- [x] Bug #26: 邮件发送失败 - "SMTP server error (502): Invalid parameters" - 已修复（移除 TLS minVersion 限制，添加详细调试日志）
