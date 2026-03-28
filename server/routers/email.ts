@@ -373,7 +373,7 @@ export const emailRouter = router({
         let successCount = 0;
         let failureCount = 0;
 
-        const results = await batchSendEmails(transporter, emailsToSend, {
+        const results = await batchSendEmails(transporter as any, emailsToSend, {
           from: `${smtpConfig.senderName || 'System'} <${smtpConfig.senderEmail}>`,
           maxRetries: 3,
         });
@@ -739,7 +739,7 @@ export const emailRouter = router({
         }
 
         // Send all emails and save logs
-        const results = await batchSendEmails(transporter, emailsToSend, {
+        const results = await batchSendEmails(transporter as any, emailsToSend, {
           from: `${smtpConfig.senderName || 'System'} <${smtpConfig.senderEmail}>`,
           maxRetries: 3,
         });

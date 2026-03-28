@@ -32,7 +32,8 @@ export async function createSmtpTransporter(config: {
     const secure = config.encryptionType === 'ssl';
     const requireTLS = config.encryptionType === 'tls';
     
-    const transporter = nodemailer.createTransport({
+    // Build transporter config - use minimal configuration to avoid TLS handshake issues
+    const transporterConfig: any = {
       host: config.host,
       port: config.port,
       secure,
@@ -43,7 +44,19 @@ export async function createSmtpTransporter(config: {
       },
       connectionTimeout: 10000,
       socketTimeout: 10000,
-    });
+    };
+    
+    // Only add tls config for TLS connections (not SSL)
+    // SSL (secure=true) uses port 465 and handles encryption automatically
+    // TLS (requireTLS=true) uses port 587 and may need additional config
+    if (config.encryptionType === 'tls') {
+      transporterConfig.tls = {
+        // Allow self-signed certificates for compatibility
+        rejectUnauthorized: false,
+      };
+    }
+    
+    const transporter = nodemailer.createTransport(transporterConfig);
     
     return transporter;
   } catch (error) {

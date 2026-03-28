@@ -161,7 +161,7 @@ export const emailHistoryRouter = router({
         }));
 
         // Send emails
-        const results = await batchSendEmails(transporter, emailsToSend, {
+        const results = await batchSendEmails(transporter as any, emailsToSend, {
           from: `${smtpConfig.senderName || 'System'} <${smtpConfig.senderEmail}>`,
           maxRetries: 3,
         });
