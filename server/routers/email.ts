@@ -373,9 +373,13 @@ export const emailRouter = router({
         let successCount = 0;
         let failureCount = 0;
 
-        const results = await batchSendEmails(transporter, emailsToSend, (current, total) => {
-          console.log(`Sending emails: ${current}/${total}`);
-        });
+        // Add from field to each email
+        const emailsWithFrom = emailsToSend.map(email => ({
+          ...email,
+          from: `${smtpConfig.senderName || 'System'} <${smtpConfig.senderEmail}>`,
+        }));
+
+        const results = await batchSendEmails(transporter, emailsWithFrom);
 
         for (let i = 0; i < results.length; i++) {
           const result = results[i];
@@ -738,9 +742,13 @@ export const emailRouter = router({
         }
 
         // Send all emails and save logs
-        const results = await batchSendEmails(transporter, emailsToSend, (current, total) => {
-          console.log(`Sending emails: ${current}/${total}`);
-        });
+        // Add from field to each email
+        const emailsWithFrom = emailsToSend.map(email => ({
+          ...email,
+          from: `${smtpConfig.senderName || 'System'} <${smtpConfig.senderEmail}>`,
+        }));
+
+        const results = await batchSendEmails(transporter, emailsWithFrom);
 
         // Save email logs with content
         console.log(`Saving ${emailsToSend.length} email logs for task ${taskId}`);
