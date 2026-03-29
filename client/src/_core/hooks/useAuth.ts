@@ -38,6 +38,10 @@ export function useAuth(options?: UseAuthOptions) {
     } finally {
       utils.auth.me.setData(undefined, null);
       await utils.auth.me.invalidate();
+      // 登出后重定向到登录页面
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
     }
   }, [logoutMutation, utils]);
 
