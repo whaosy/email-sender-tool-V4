@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Settings, BarChart3, Clock, Shield, Zap } from "lucide-react";
 import { useLocation } from "wouter";
-import { getLoginUrl } from "@/const";
+// import { getLoginUrl } from "@/const";
 
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
@@ -199,15 +199,15 @@ export default function Home() {
         <Card className="bg-white">
           <CardHeader>
             <CardTitle>登录系统</CardTitle>
-            <CardDescription>使用Manus账户登录</CardDescription>
+            <CardDescription>使用用户名密码登录</CardDescription>
           </CardHeader>
           <CardContent>
             <Button
-              onClick={() => (window.location.href = getLoginUrl())}
+              onClick={() => (window.location.href = "/login")}
               className="w-full"
               size="lg"
             >
-              登录
+              前往登录
             </Button>
           </CardContent>
         </Card>
