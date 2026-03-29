@@ -1,0 +1,8 @@
+{
+  "query": "\n-- 添加 username 和 password 字段到 users 表\nALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(255);\nALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255);\nALTER TABLE users ADD COLUMN IF NOT EXISTS displayName VARCHAR(255);\n\n-- 添加示例用户（admin/admin123）\n-- admin123 的 MD5 哈希值：0192023a7bbd73250516f069df18b500\nINSERT INTO users (username, password, displayName, email, role, lastSignedIn) \nVALUES ('admin', '0192023a7bbd73250516f069df18b500', 'Admin User', 'admin@example.com', 'admin', NOW())\nON DUPLICATE KEY UPDATE password = '0192023a7bbd73250516f069df18b500';\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2iWhaqpd3Nra55E.root --database NMfNtBhdJMscuAEd7SU6nn --execute \n-- 添加 username 和 password 字段到 users 表\nALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(255);\nALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255);\nALTER TABLE users ADD COLUMN IF NOT EXISTS displayName VARCHAR(255);\n\n-- 添加示例用户（admin/admin123）\n-- admin123 的 MD5 哈希值：0192023a7bbd73250516f069df18b500\nINSERT INTO users (username, password, displayName, email, role, lastSignedIn) \nVALUES ('admin', '0192023a7bbd73250516f069df18b500', 'Admin User', 'admin@example.com', 'admin', NOW())\nON DUPLICATE KEY UPDATE password = '0192023a7bbd73250516f069df18b500';\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1364 (HY000) at line 9: Field 'openId' doesn't have a default value"
+  ]
+}

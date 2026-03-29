@@ -1,7 +1,7 @@
 import { eq, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, emailTasks, emailTemplates, smtpConfigs, emailLogs, scheduledJobs, InsertEmailTask, InsertEmailTemplate, InsertSmtpConfig, InsertEmailLog, InsertScheduledJob } from "../drizzle/schema";
-import { ENV } from './_core/env';
+import { createHash } from "crypto";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -18,75 +18,69 @@ export async function getDb() {
   return _db;
 }
 
-export async function upsertUser(user: InsertUser): Promise<void> {
-  if (!user.openId) {
-    throw new Error("User openId is required for upsert");
-  }
-
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
-    return;
-  }
-
-  try {
-    const values: InsertUser = {
-      openId: user.openId,
-    };
-    const updateSet: Record<string, unknown> = {};
-
-    const textFields = ["name", "email", "loginMethod"] as const;
-    type TextField = (typeof textFields)[number];
-
-    const assignNullable = (field: TextField) => {
-      const value = user[field];
-      if (value === undefined) return;
-      const normalized = value ?? null;
-      values[field] = normalized;
-      updateSet[field] = normalized;
-    };
-
-    textFields.forEach(assignNullable);
-
-    if (user.lastSignedIn !== undefined) {
-      values.lastSignedIn = user.lastSignedIn;
-      updateSet.lastSignedIn = user.lastSignedIn;
-    }
-    if (user.role !== undefined) {
-      values.role = user.role;
-      updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
-    }
-
-    if (!values.lastSignedIn) {
-      values.lastSignedIn = new Date();
-    }
-
-    if (Object.keys(updateSet).length === 0) {
-      updateSet.lastSignedIn = new Date();
-    }
-
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
-    });
-  } catch (error) {
-    console.error("[Database] Failed to upsert user:", error);
-    throw error;
-  }
+/**
+ * MD5 密码哈希函数
+ */
+export function hashPasswordMD5(password: string): string {
+  return createHash('md5').update(password).digest('hex');
 }
 
-export async function getUserByOpenId(openId: string) {
+/**
+ * 根据用户名获取用户
+ */
+export async function getUserByUsername(username: string) {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot get user: database not available");
     return undefined;
   }
 
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
+  const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
   return result.length > 0 ? result[0] : undefined;
+}
+
+/**
+ * 根据用户 ID 获取用户
+ */
+export async function getUserById(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get user: database not available");
+    return undefined;
+  }
+
+  const result = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+/**
+ * 验证用户密码
+ */
+export async function verifyUserPassword(username: string, password: string): Promise<boolean> {
+  const user = await getUserByUsername(username);
+  if (!user) {
+    return false;
+  }
+
+  const passwordHash = hashPasswordMD5(password);
+  return user.password === passwordHash;
+}
+
+/**
+ * 更新用户最后登录时间
+ */
+export async function updateUserLastSignedIn(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot update user: database not available");
+    return;
+  }
+
+  try {
+    await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, userId));
+  } catch (error) {
+    console.error("[Database] Failed to update lastSignedIn:", error);
+  }
 }
 
 // Email system queries

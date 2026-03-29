@@ -9,7 +9,7 @@ export default function Home() {
   const { user, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
   // For development/testing: allow access without authentication
-  const testUser = { name: "测试用户", email: "test@example.com" };
+  const testUser = { displayName: "测试用户", username: "testuser", email: "test@example.com" };
   const displayUser = user || testUser;
   const canAccess = true; // Always allow access for testing
 
@@ -33,7 +33,7 @@ export default function Home() {
           {/* Welcome Card */}
           <Card className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
             <CardHeader>
-              <CardTitle>欢迎，{displayUser?.name || "用户"}！</CardTitle>
+              <CardTitle>欢迎，{displayUser?.displayName || displayUser?.username || "用户"}！</CardTitle>
               <CardDescription>开始使用邮件发送系统</CardDescription>
             </CardHeader>
             <CardContent>

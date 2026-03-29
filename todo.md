@@ -121,3 +121,15 @@
 ## 第十五轮 Bug 修复和功能扩展
 - [x] Bug #25: 邮件发送失败 - "Mail command failed: 502 Invalid paramenters" 错误 - 已修复（添加邮件参数验证）
 - [x] Feature #15: 下载全部预览邮件 - 生成包含汇总信息和邮件明细的 HTML 页面 - 已完成
+
+
+## 第十六轮 本地用户认证系统实现
+- [ ] Feature #16: 移除 Manus OAuth 认证，实现本地用户注册/登录系统
+  - [ ] 修改数据库 schema，添加 username、password、email 字段
+  - [ ] 实现用户注册 API（密码加密、邮箱验证）
+  - [ ] 实现用户登录 API（JWT token 生成）
+  - [ ] 实现密码修改 API
+  - [ ] 创建前端登录页面
+  - [ ] 创建前端注册页面
+  - [ ] 移除 OAuth 相关代码
+  - [ ] 更新认证流程和权限检查
