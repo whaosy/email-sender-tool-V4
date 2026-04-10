@@ -255,6 +255,13 @@ function DashboardLayoutContent({
                 </div>
               </div>
             </div>
+            <button
+              onClick={logout}
+              className="h-9 w-9 flex items-center justify-center hover:bg-accent rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label="Logout"
+            >
+              <LogOut className="h-4 w-4 text-destructive" />
+            </button>
           </div>
         )}
         <main className="flex-1 p-4">{children}</main>
