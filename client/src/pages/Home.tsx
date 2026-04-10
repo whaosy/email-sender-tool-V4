@@ -1,12 +1,12 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Settings, BarChart3, Clock, Shield, Zap } from "lucide-react";
+import { Mail, Settings, BarChart3, Clock, Shield, Zap, LogOut } from "lucide-react";
 import { useLocation } from "wouter";
 // import { getLoginUrl } from "@/const";
 
 export default function Home() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const [, navigate] = useLocation();
   // For development/testing: allow access without authentication
   const testUser = { displayName: "测试用户", username: "testuser", email: "test@example.com" };
@@ -17,14 +17,32 @@ export default function Home() {
     navigate("/email-sender");
   };
 
+  const handleLogout = () => {
+    logout();
+  };
+
   if (canAccess) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         {/* Header */}
         <div className="bg-white border-b border-slate-200">
-          <div className="max-w-6xl mx-auto px-6 py-6">
-            <h1 className="text-3xl font-bold text-slate-900">批量邮件发送系统</h1>
-            <p className="text-slate-600 mt-2">高效管理和发送结算数据核对邮件</p>
+          <div className="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">批量邮件发送系统</h1>
+              <p className="text-slate-600 mt-2">高效管理和发送结算数据核对邮件</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-slate-600">{displayUser?.username || displayUser?.displayName}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                退出
+              </Button>
+            </div>
           </div>
         </div>
 
