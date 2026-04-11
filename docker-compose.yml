@@ -1,0 +1,242 @@
+# ============================================================================
+# Docker Compose 配置 - 邮件发送系统
+# ============================================================================
+# 本配置用于本地开发和测试，包含应用服务和 MySQL 数据库
+#
+# 使用方法：
+#   启动所有服务：docker-compose up -d
+#   查看日志：docker-compose logs -f app
+#   停止服务：docker-compose down
+#   删除数据：docker-compose down -v
+#
+# 注意：
+# - 生产环境建议使用 Kubernetes 或其他编排工具
+# - 数据库密码应该使用环境变量或 .env 文件管理
+# - 所有敏感信息不应该硬编码在此文件中
+# ============================================================================
+
+version: '3.8'
+
+services:
+  # ============================================================================
+  # MySQL 数据库服务
+  # ============================================================================
+  mysql:
+    image: mysql:5.7
+    container_name: email-sender-mysql
+    restart: unless-stopped
+    
+    # 环境变量配置
+    environment:
+      # MySQL root 用户密码
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      
+      # 创建的数据库
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-email_sender_db}
+      
+      # 创建的用户
+      MYSQL_USER: ${MYSQL_USER:-email_user}
+      
+      # 用户密码
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-email_password}
+      
+      # MySQL 字符集
+      MYSQL_INITDB_SKIP_TZINFO: "yes"
+    
+    # 端口映射
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    
+    # 数据卷挂载
+    volumes:
+      # 数据库数据持久化
+      - mysql_data:/var/lib/mysql
+      
+      # 初始化脚本（可选）
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER:-email_user}", "-p${MYSQL_PASSWORD:-email_password}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    
+    # 网络
+    networks:
+      - email-network
+
+  # ============================================================================
+  # 应用服务（Node.js + Express + React）
+  # ============================================================================
+  app:
+    # 使用本地 Dockerfile 构建镜像
+    build:
+      context: .
+      dockerfile: Dockerfile
+    
+    container_name: email-sender-app
+    restart: unless-stopped
+    
+    # 依赖关系
+    depends_on:
+      mysql:
+        condition: service_healthy
+    
+    # 环境变量配置
+    environment:
+      # Node.js 环境
+      NODE_ENV: ${NODE_ENV:-production}
+      
+      # 应用端口
+      PORT: ${PORT:-3000}
+      
+      # 数据库连接字符串
+      DATABASE_URL: mysql://${MYSQL_USER:-email_user}:${MYSQL_PASSWORD:-email_password}@mysql:3306/${MYSQL_DATABASE:-email_sender_db}
+      
+      # JWT 密钥（用于会话管理）
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      
+      # 应用标题
+      VITE_APP_TITLE: ${VITE_APP_TITLE:-邮件自动发送系统}
+      
+      # 应用 ID
+      VITE_APP_ID: ${VITE_APP_ID:-email-sender-tool}
+      
+      # 日志级别
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      
+      # 时区
+      TZ: ${TZ:-Asia/Shanghai}
+    
+    # 端口映射
+    ports:
+      - "${PORT:-3000}:3000"
+    
+    # 数据卷挂载
+    volumes:
+      # 应用日志持久化
+      - app_logs:/app/logs
+      
+      # 可选：将本地代码挂载到容器中（开发模式）
+      # - .:/app
+      # - /app/node_modules
+    
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '1'
+          memory: 512M
+    
+    # 网络
+    networks:
+      - email-network
+    
+    # 日志驱动配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================================================
+  # 可选：Nginx 反向代理（生产环境推荐）
+  # ============================================================================
+  # 取消注释以启用 Nginx
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: email-sender-nginx
+  #   restart: unless-stopped
+  #   
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./ssl:/etc/nginx/ssl:ro
+  #   
+  #   depends_on:
+  #     - app
+  #   
+  #   networks:
+  #     - email-network
+
+# ============================================================================
+# 数据卷定义
+# ============================================================================
+volumes:
+  # MySQL 数据卷
+  mysql_data:
+    driver: local
+  
+  # 应用日志卷
+  app_logs:
+    driver: local
+
+# ============================================================================
+# 网络定义
+# ============================================================================
+networks:
+  email-network:
+    driver: bridge
+
+# ============================================================================
+# 使用说明
+# ============================================================================
+# 
+# 1. 启动所有服务
+#    docker-compose up -d
+#
+# 2. 查看服务日志
+#    docker-compose logs -f app
+#    docker-compose logs -f mysql
+#
+# 3. 进入应用容器
+#    docker-compose exec app sh
+#
+# 4. 进入数据库容器
+#    docker-compose exec mysql mysql -u email_user -p email_sender_db
+#
+# 5. 停止所有服务
+#    docker-compose down
+#
+# 6. 删除所有数据（包括数据库）
+#    docker-compose down -v
+#
+# 7. 重新构建镜像
+#    docker-compose build --no-cache
+#
+# 8. 查看服务状态
+#    docker-compose ps
+#
+# 9. 查看资源使用情况
+#    docker stats
+#
+# 10. 更新服务（重新构建并启动）
+#     docker-compose up -d --build
+#
+# ============================================================================
